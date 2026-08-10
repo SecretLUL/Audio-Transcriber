@@ -12,7 +12,7 @@ import os
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 import pyaudiowpatch as pyaudio
 
@@ -241,16 +241,22 @@ class RecorderApp:
         self.timer_label.grid(row=0, column=1, sticky="s", padx=(0, T.LG),
                               pady=(0, 2))
 
+        self.upload_btn = W.Button(body, text="Upload file", icon_name="upload",
+                                   kind="quiet", width=130, height=42,
+                                   command=self.upload_and_transcribe)
+        self.upload_btn.grid(row=0, column=2, sticky="s", padx=(0, T.SM), pady=(0, 1))
+
         self.start_btn = W.Button(body, text="Start recording", icon_name="record",
-                                  kind="record", width=190, height=42,
+                                  kind="record", width=170, height=42,
                                   command=self.start_recording)
-        self.start_btn.grid(row=0, column=2, sticky="s", pady=(0, 1))
+        self.start_btn.grid(row=0, column=3, sticky="s", pady=(0, 1))
 
         self.stop_btn = W.Button(body, text="Stop", icon_name="stop", kind="stop",
-                                 width=130, height=42, state="disabled",
+                                 width=100, height=42, state="disabled",
                                  command=self.stop_recording)
-        self.stop_btn.grid(row=0, column=3, sticky="s", padx=(T.SM, 0),
+        self.stop_btn.grid(row=0, column=4, sticky="s", padx=(T.SM, 0),
                            pady=(0, 1))
+
 
     # ------------------------------------------------------------------
     def _build_transcript(self, parent):
@@ -430,8 +436,44 @@ class RecorderApp:
         self.finalizer = pipeline.Finalizer(self.bridge, self.settings)
         self.finalizer.run_async(recording, self.recording_base_name)
 
+    def upload_and_transcribe(self):
+        if self.engine.is_recording:
+            return
+
+        file_types = [
+            ("Audio Files", "*.wav *.mp3 *.m4a *.flac *.ogg *.aac *.wma *.mp4 *.webm *.opus *.aiff *.m4b *.amr *.caf"),
+            ("WAV Audio", "*.wav"),
+            ("MP3 Audio", "*.mp3"),
+            ("M4A / AAC Audio", "*.m4a *.aac"),
+            ("FLAC / OGG Audio", "*.flac *.ogg"),
+            ("All Files", "*.*")
+        ]
+        file_path = filedialog.askopenfilename(
+            title="Select Audio File to Transcribe",
+            filetypes=file_types
+        )
+        if not file_path:
+            return
+
+        self._sync_settings_from_ui()
+        file_basename = os.path.splitext(os.path.basename(file_path))[0]
+        base_name = paths.safe_output_name(self.filename_entry.get() or file_basename)
+
+        self.start_btn.config(state="disabled")
+        self.upload_btn.config(state="disabled")
+        self.stop_btn.config(state="disabled")
+        self.mic_combo.config(state="disabled")
+        self.sys_combo.config(state="disabled")
+        self.status.set("transcribing file…", T.WARN)
+        self.transcript.clear()
+        self.transcript.append(f"Processing uploaded file: {os.path.basename(file_path)}\n")
+
+        self.finalizer = pipeline.FileFinalizer(self.bridge, self.settings)
+        self.finalizer.run_async(file_path, base_name)
+
     def _reset_controls(self):
         self.start_btn.config(state="normal")
+        self.upload_btn.config(state="normal")
         self.stop_btn.config(state="disabled")
         self.mic_combo.config(state="readonly")
         self.sys_combo.config(state="readonly")
@@ -439,6 +481,7 @@ class RecorderApp:
         self.timer_label.config(text="00:00", fg=T.TEXT_MUTE)
         self.mic_meter.reset()
         self.sys_meter.reset()
+
 
     # ==================================================================
     # Settings

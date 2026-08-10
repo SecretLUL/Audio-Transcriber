@@ -55,6 +55,7 @@ No Python installation or terminal setup required!
 ## ✨ Features
 
 - 🎤 **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (system audio).
+- 📁 **Audio File Upload & Transcription**: Upload and transcribe any local audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.aac`, `.wma`, `.mp4`, `.webm`, `.opus`, etc.).
 - 🗣️ **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
 - 🤖 **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
 - ☁️ **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
@@ -86,7 +87,8 @@ Audio-Transcriber/
  │    ├── audio/                 Audio processing module
  │    │    ├── devices.py        WASAPI / PulseAudio enumeration & loopback matching
  │    │    ├── capture.py        Multi-device audio capture & disk streaming
- │    │    └── dsp.py            Active channel downmix & 16 kHz polyphase resampling
+ │    │    ├── dsp.py            Active channel downmix & 16 kHz polyphase resampling
+ │    │    └── loader.py         Universal audio file loader with soundfile & FFmpeg fallback
  │    ├── transcribe/            AI Transcription engines
  │    │    ├── base.py           Shared backend interface & timestamp parsers
  │    │    ├── binaries.py       Atomic model & binary downloader
@@ -114,9 +116,11 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 ## 🎛️ User Interface & Controls
 
 - ⏺️ **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
+- 📁 **Upload file**: Select and transcribe any local audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.aac`, `.wma`, etc.).
 - 🎚️ **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
 - 💬 **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
 - 💾 **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
+
 
 ---
 

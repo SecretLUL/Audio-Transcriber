@@ -360,6 +360,19 @@ def _draw_check(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     draw.line(pts, fill=color, width=int(S * 0.07))
 
 
+def _draw_upload(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Upload / Import Audio File Icon."""
+    color = fg or "#38bdf8"
+    cx = S * 0.5
+    # Base tray
+    draw.line([S * 0.20, S * 0.80, S * 0.80, S * 0.80], fill=color, width=int(S * 0.07))
+    # Up arrow stem
+    draw.line([cx, S * 0.72, cx, S * 0.22], fill=color, width=int(S * 0.07))
+    # Up arrow head
+    pts = [(S * 0.30, S * 0.42), (cx, S * 0.20), (S * 0.70, S * 0.42)]
+    draw.line(pts, fill=color, width=int(S * 0.07))
+
+
 def _draw_fallback(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     """Fallback circle renderer."""
     draw.ellipse([S * 0.2, S * 0.2, S * 0.8, S * 0.8], fill=fg or "#64748b")
@@ -382,4 +395,6 @@ _RENDERERS = {
     "trash": _draw_trash,
     "warning": _draw_warning,
     "check": _draw_check,
+    "upload": _draw_upload,
 }
+
