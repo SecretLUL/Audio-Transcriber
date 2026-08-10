@@ -9,7 +9,25 @@ An advanced, privacy-focused audio recording and AI transcription suite. It capt
 
 ---
 
+## 📌 Table of Contents
+
+- [🚀 Quick Start](#-quick-start)
+  - [Option A: Pre-built Standalone Release](#option-a-pre-built-standalone-release-recommended-)
+  - [Option B: Running from Source](#option-b-running-from-source-for-developers-)
+- [🐧 Platform Compatibility & Downloads](#-platform-compatibility--downloads)
+- [✨ Features](#-features)
+- [🏗️ Architecture & Project Structure](#-architecture--project-structure)
+- [🗣️ How Speaker Diarization Works](#-how-speaker-diarization-works)
+- [🎛️ User Interface & Tabs](#-user-interface--tabs)
+- [⚙️ Technical Highlights](#-technical-highlights)
+- [🧪 Testing & Quality Assurance](#-testing--quality-assurance)
+- [📦 Automated Release Build](#-automated-release-build)
+- [📄 License & FOSS Status](#-license--foss-status)
+
+---
+
 ## 🚀 Quick Start
+
 
 ### Option A: Pre-built Standalone Release (Recommended 💻)
 
