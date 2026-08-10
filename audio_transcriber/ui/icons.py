@@ -373,6 +373,22 @@ def _draw_upload(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     draw.line(pts, fill=color, width=int(S * 0.07))
 
 
+def _draw_save(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Save / Disk Icon."""
+    color = fg or "#10b981"
+    pad = S * 0.18
+    # Disk body
+    draw.rounded_rectangle([pad, pad, S - pad, S - pad], radius=S * 0.08,
+                           fill="#064e3b", outline=color, width=int(S * 0.05))
+    # Top metal slider box
+    draw.rectangle([S * 0.34, pad, S * 0.66, pad + S * 0.28], fill=color)
+    # Slider notch
+    draw.rectangle([S * 0.52, pad + S * 0.05, S * 0.60, pad + S * 0.22], fill="#064e3b")
+    # Bottom label paper window
+    draw.rounded_rectangle([S * 0.28, S * 0.54, S * 0.72, S - pad - S * 0.04], radius=S * 0.04,
+                           fill="#0f172a", outline=color, width=int(S * 0.04))
+
+
 def _draw_fallback(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     """Fallback circle renderer."""
     draw.ellipse([S * 0.2, S * 0.2, S * 0.8, S * 0.8], fill=fg or "#64748b")
@@ -396,5 +412,7 @@ _RENDERERS = {
     "warning": _draw_warning,
     "check": _draw_check,
     "upload": _draw_upload,
+    "save": _draw_save,
 }
+
 

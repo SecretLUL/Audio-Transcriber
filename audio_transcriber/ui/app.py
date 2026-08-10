@@ -266,16 +266,21 @@ class RecorderApp:
         toolbar = tk.Frame(card.body, bg=T.CARD)
         toolbar.pack(fill=tk.X, pady=(0, T.XS))
 
-        self.copy_btn = W.Button(toolbar, text="Copy", icon_name="copy", kind="quiet",
-                                 width=80, height=28, command=self._copy_transcript)
-        self.copy_btn.pack(side=tk.RIGHT, padx=(T.XS, 0))
-
         self.clear_btn = W.Button(toolbar, text="Clear", icon_name="trash", kind="quiet",
                                   width=80, height=28, command=lambda: self.transcript.clear())
         self.clear_btn.pack(side=tk.RIGHT)
 
+        self.save_btn = W.Button(toolbar, text="Save", icon_name="save", kind="quiet",
+                                 width=80, height=28, command=self._save_transcript)
+        self.save_btn.pack(side=tk.RIGHT, padx=(0, T.XS))
+
+        self.copy_btn = W.Button(toolbar, text="Copy", icon_name="copy", kind="quiet",
+                                 width=80, height=28, command=self._copy_transcript)
+        self.copy_btn.pack(side=tk.RIGHT, padx=(0, T.XS))
+
         self.transcript = W.Transcript(card.body)
         self.transcript.pack(fill=tk.BOTH, expand=True)
+
 
     # ==================================================================
     # Events
@@ -530,6 +535,31 @@ class RecorderApp:
             self.root.clipboard_clear()
             self.root.clipboard_append(txt)
             self.status.set("transcript copied", T.OK)
+
+    def _save_transcript(self):
+        txt = self.transcript.text.get("1.0", tk.END).strip()
+        if not txt:
+            messagebox.showinfo("Empty transcript", "There is no text in the transcript to save.")
+            return
+
+        default_name = self.recording_base_name or paths.safe_output_name(self.filename_entry.get()) or "transcript"
+        file_path = filedialog.asksaveasfilename(
+            title="Save Transcript As",
+            defaultextension=".txt",
+            initialfile=f"{default_name}.txt",
+            filetypes=[("Text File", "*.txt"), ("All Files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as handle:
+                handle.write(txt + "\n")
+            self.status.set("transcript saved", T.OK)
+            messagebox.showinfo("Saved", f"Transcript successfully saved to:\n{file_path}")
+        except Exception as exc:
+            messagebox.showerror("Save Error", f"Could not save transcript:\n{exc}")
+
 
     def _on_mic_gain(self, value):
         self.settings.mic_gain_db = float(value)
