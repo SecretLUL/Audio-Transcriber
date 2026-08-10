@@ -360,6 +360,72 @@ def _draw_check(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     draw.line(pts, fill=color, width=int(S * 0.07))
 
 
+def _draw_upload(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Upload / Import Audio File Icon."""
+    color = fg or "#38bdf8"
+    cx = S * 0.5
+    # Base tray
+    draw.line([S * 0.20, S * 0.80, S * 0.80, S * 0.80], fill=color, width=int(S * 0.07))
+    # Up arrow stem
+    draw.line([cx, S * 0.72, cx, S * 0.22], fill=color, width=int(S * 0.07))
+    # Up arrow head
+    pts = [(S * 0.30, S * 0.42), (cx, S * 0.20), (S * 0.70, S * 0.42)]
+    draw.line(pts, fill=color, width=int(S * 0.07))
+
+
+def _draw_save(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Save / Disk Icon."""
+    color = fg or "#10b981"
+    pad = S * 0.18
+    # Disk body
+    draw.rounded_rectangle([pad, pad, S - pad, S - pad], radius=S * 0.08,
+                           fill="#064e3b", outline=color, width=int(S * 0.05))
+    # Top metal slider box
+    draw.rectangle([S * 0.34, pad, S * 0.66, pad + S * 0.28], fill=color)
+    # Slider notch
+    draw.rectangle([S * 0.52, pad + S * 0.05, S * 0.60, pad + S * 0.22], fill="#064e3b")
+    # Bottom label paper window
+    draw.rounded_rectangle([S * 0.28, S * 0.54, S * 0.72, S - pad - S * 0.04], radius=S * 0.04,
+                           fill="#0f172a", outline=color, width=int(S * 0.04))
+
+
+def _draw_sources(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Audio Sources Icon: Mixer / Sliders Badge."""
+    color = fg or "#38bdf8"
+    pad = S * 0.05
+    draw.rounded_rectangle([pad, pad, S - pad, S - pad], radius=S * 0.25,
+                           fill="#0f172a", outline="#1e293b", width=int(S * 0.04))
+    # Two horizontal slider tracks with knobs
+    draw.line([S * 0.25, S * 0.38, S * 0.75, S * 0.38], fill="#334155", width=int(S * 0.06))
+    draw.ellipse([S * 0.32, S * 0.28, S * 0.48, S * 0.48], fill=color)
+    draw.line([S * 0.25, S * 0.64, S * 0.75, S * 0.64], fill="#334155", width=int(S * 0.06))
+    draw.ellipse([S * 0.52, S * 0.54, S * 0.68, S * 0.74], fill="#c084fc")
+
+
+def _draw_folder(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Folder Directory Icon."""
+    color = fg or "#fbbf24"
+    # Folder tab
+    draw.rounded_rectangle([S * 0.18, S * 0.22, S * 0.48, S * 0.45], radius=S * 0.05, fill="#b45309")
+    # Main folder body
+    draw.rounded_rectangle([S * 0.16, S * 0.32, S * 0.84, S * 0.78], radius=S * 0.08, fill="#78350f", outline=color, width=int(S * 0.04))
+
+
+def _draw_settings(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
+    """Settings Gear Icon."""
+    color = fg or "#94a3b8"
+    cx, cy = S * 0.5, S * 0.5
+    r_out, r_in = S * 0.36, S * 0.24
+    for i in range(8):
+        angle = i * (math.pi / 4)
+        tx = cx + (r_out + S * 0.06) * math.cos(angle)
+        ty = cy + (r_out + S * 0.06) * math.sin(angle)
+        draw.line([cx + r_in * math.cos(angle), cy + r_in * math.sin(angle), tx, ty],
+                  fill=color, width=int(S * 0.10))
+    draw.ellipse([cx - r_out, cy - r_out, cx + r_out, cy + r_out], fill="#1e293b", outline=color, width=int(S * 0.04))
+    draw.ellipse([cx - S * 0.12, cy - S * 0.12, cx + S * 0.12, cy + S * 0.12], fill="#0f172a")
+
+
 def _draw_fallback(draw: ImageDraw.ImageDraw, S: float, fg: str = None):
     """Fallback circle renderer."""
     draw.ellipse([S * 0.2, S * 0.2, S * 0.8, S * 0.8], fill=fg or "#64748b")
@@ -382,4 +448,12 @@ _RENDERERS = {
     "trash": _draw_trash,
     "warning": _draw_warning,
     "check": _draw_check,
+    "upload": _draw_upload,
+    "save": _draw_save,
+    "sources": _draw_sources,
+    "folder": _draw_folder,
+    "settings": _draw_settings,
 }
+
+
+

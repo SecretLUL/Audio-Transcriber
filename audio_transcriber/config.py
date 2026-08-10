@@ -58,6 +58,7 @@ class Settings:
 
     # --- Output -----------------------------------------------------------
     filename: str = "my_meeting"
+    output_dir: str = ""            # empty = default paths.OUT_DIR
     separate_tracks: bool = True    # transcribe both tracks independently
     keep_raw_tracks: bool = False   # keep raw tracks after processing
 
@@ -72,7 +73,15 @@ class Settings:
     migrated_plaintext_key: bool = field(default=False, repr=False, compare=False)
 
     # ------------------------------------------------------------------
+    def get_output_dir(self):
+        """Returns the configured output directory or default OUT_DIR."""
+        if self.output_dir and self.output_dir.strip():
+            return os.path.abspath(self.output_dir.strip())
+        from .paths import OUT_DIR
+        return OUT_DIR
+
     def model_name(self):
+
         """whisper model name for the current choice, or None for cloud."""
         index = max(0, min(self.model_index, len(MODEL_CHOICES) - 1))
         return MODEL_CHOICES[index][1]

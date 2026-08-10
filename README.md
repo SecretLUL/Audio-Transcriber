@@ -9,7 +9,25 @@ An advanced, privacy-focused audio recording and AI transcription suite. It capt
 
 ---
 
+## 📌 Table of Contents
+
+- [🚀 Quick Start](#-quick-start)
+  - [Option A: Pre-built Standalone Release](#option-a-pre-built-standalone-release-recommended-)
+  - [Option B: Running from Source](#option-b-running-from-source-for-developers-)
+- [🐧 Platform Compatibility & Downloads](#-platform-compatibility--downloads)
+- [✨ Features](#-features)
+- [🏗️ Architecture & Project Structure](#-architecture--project-structure)
+- [🗣️ How Speaker Diarization Works](#-how-speaker-diarization-works)
+- [🎛️ User Interface & Tabs](#-user-interface--tabs)
+- [⚙️ Technical Highlights](#-technical-highlights)
+- [🧪 Testing & Quality Assurance](#-testing--quality-assurance)
+- [📦 Automated Release Build](#-automated-release-build)
+- [📄 License & FOSS Status](#-license--foss-status)
+
+---
+
 ## 🚀 Quick Start
+
 
 ### Option A: Pre-built Standalone Release (Recommended 💻)
 
@@ -55,6 +73,9 @@ No Python installation or terminal setup required!
 ## ✨ Features
 
 - 🎤 **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (system audio).
+- 📁 **Audio File Upload & Transcription**: Upload and transcribe any local audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.aac`, `.wma`, `.mp4`, `.webm`, `.opus`, etc.).
+- 📂 **Custom Output Directory**: Choose any target folder on your system for saving output `.wav` audio files and `.txt` transcripts.
+- 🗂️ **Tabbed Interface**: Modern tabbed layout dividing controls cleanly into **Recorder**, **Settings**, and **Transcript**.
 - 🗣️ **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
 - 🤖 **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
 - ☁️ **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
@@ -86,7 +107,8 @@ Audio-Transcriber/
  │    ├── audio/                 Audio processing module
  │    │    ├── devices.py        WASAPI / PulseAudio enumeration & loopback matching
  │    │    ├── capture.py        Multi-device audio capture & disk streaming
- │    │    └── dsp.py            Active channel downmix & 16 kHz polyphase resampling
+ │    │    ├── dsp.py            Active channel downmix & 16 kHz polyphase resampling
+ │    │    └── loader.py         Universal audio file loader with soundfile & FFmpeg fallback
  │    ├── transcribe/            AI Transcription engines
  │    │    ├── base.py           Shared backend interface & timestamp parsers
  │    │    ├── binaries.py       Atomic model & binary downloader
@@ -111,22 +133,60 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 
 ---
 
-## 🎛️ User Interface & Controls
+## 🎛️ User Interface & Tabs
 
-- ⏺️ **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
-- 🎚️ **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
-- 💬 **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
-- 💾 **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
+- 🎙️ **Recorder Tab**: Audio device selection, gain sliders (-20.0 dB to +20.0 dB), real-time gained VUMeters, file naming, **Upload file** button, and **Start/Stop recording** (`F5`).
+- ⚙️ **Settings Tab**:
+  - **Transcription Engine**: Model selection (Tiny to Large-v3), Language choice (Auto-detect + 100+ languages), and ElevenLabs API key.
+  - **Output Directory**: Target folder selector for `.wav` audio files and `.txt` transcripts with **Browse...** and **Reset** buttons.
+  - **Processing Switches**:
+    - ⚡ **Live preview**: Real-time streaming transcription during active recording.
+    - 🎛️ **Separate tracks**: Dual-channel capture mode (Microphone + System Audio).
+    - 🎙️ **VAD**: Voice Activity Detection pre-filtering (Silero VAD).
+    - 💾 **Keep raw tracks**: Preserves unmixed separate microphone and system audio `.wav` files for post-processing in DAWs/NLEs (e.g. Audacity, Premiere Pro).
+- 📄 **Transcript Tab**: Full transcript viewer with **Copy**, **Save** (export as `.txt`), and **Clear** toolbar buttons.
+
+> ⌨️ **Global Hotkey**: Press **`F5`** at any time to start or stop recording instantly.
 
 ---
 
 ## ⚙️ Technical Highlights
 
 - **WASAPI / PulseAudio Loopback**: Native system audio capture guarantees zero-loss recording.
+- **Universal Audio Loader**: Reads native audio formats via `soundfile` with an automatic `FFmpeg` fallback for M4A, AAC, WMA, MP4, WebM, and Opus files.
+- **High-DPI & WQHD Display Scaling**: Native Windows High-DPI awareness (`SetProcessDpiAwareness(2)`) and dynamic scaling for WQHD (1440p) and 4K displays.
 - **Voice Activity Detection (VAD)**: Optional Silero VAD (`ggml-silero-vad.bin`) pre-filtering. When enabled, it strips silence before feeding audio to Whisper. It is disabled by default to preserve precise sentence timestamps essential for speaker diarization; `diarize.py` filters pause hallucinations using track-relative RMS energy instead.
 - **Polyphase Resampling**: High-quality 16 kHz Mono resampling via `scipy.signal.resample_poly`.
 - **Atomic File Operations**: Safe binary downloads and atomic settings updates prevent file corruption.
 - **Vulkan / GPU Notice**: By default, GPU flags (`-ng`) fall back to CPU execution to prevent driver crashes on unsupported hardware. Compatible builds can enable GPU acceleration via `allow_gpu`.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The project includes an extensive automated test suite covering all modules:
+
+```shell
+python run_tests.py
+```
+
+- **128+ Unit Tests**:
+  - 🎵 **Audio & DSP**: Resampling, downmixing, active channel detection, RMS metering, and universal audio file loading (FFmpeg fallback).
+  - 🗣️ **Diarization**: Speaker attribution, crosstalk filtering, and overlap deduplication.
+  - 🔒 **Security & Config**: Windows DPAPI encryption roundtrips, secret storage, and schema migrations.
+  - 🖥️ **GUI & Lifecycle**: Widget geometries, high-DPI scaling, tabbed layout, gain slider meter reactivity, and window teardown handlers.
+
+---
+
+## 📦 Automated Release Build
+
+To build a standalone executable and zip archive locally using PyInstaller:
+
+```shell
+python build_release.py
+```
+
+The output executable and `.zip` package will be saved in the `dist/` directory.
 
 ---
 
@@ -146,3 +206,4 @@ furnished to do so.
 ```
 
 You are free to use, modify, distribute, and integrate this software in personal or commercial projects.
+

@@ -78,7 +78,8 @@ class Finalizer:
     # ------------------------------------------------------------------
     def _process(self, recording, base_name):
         bridge, settings = self.bridge, self.settings
-        os.makedirs(OUT_DIR, exist_ok=True)
+        out_dir = settings.get_output_dir()
+        os.makedirs(out_dir, exist_ok=True)
 
         for warning in recording.warnings:
             bridge.post(Log(f"Note: {warning}\n"))
@@ -97,7 +98,7 @@ class Finalizer:
         system = _pad_to(system, length)
 
         # --- 2. Audible mixdown (with the gain sliders) -----------------
-        mix_path = os.path.join(OUT_DIR, f"{base_name}.wav")
+        mix_path = os.path.join(out_dir, f"{base_name}.wav")
         stereo = np.column_stack([
             dsp.limit_peak(dsp.apply_gain(mic, settings.mic_gain_db)),
             dsp.limit_peak(dsp.apply_gain(system, settings.loop_gain_db)),
@@ -159,7 +160,10 @@ class Finalizer:
         if not text.strip():
             text = "[No spoken text was recognised.]"
 
-        txt_path = os.path.join(OUT_DIR, f"{base_name}.txt")
+        txt_path = os.path.join(out_dir, f"{base_name}.txt")
+        with open(txt_path, "w", encoding="utf-8") as handle:
+            handle.write(text + "\n")
+
         with open(txt_path, "w", encoding="utf-8") as handle:
             handle.write(text + "\n")
 
@@ -174,6 +178,112 @@ class Finalizer:
         bridge.post(Finished(text=text, txt_path=txt_path, audio_path=mix_path))
 
     # ------------------------------------------------------------------
+    def _transcribe(self, path, kind):
+        backend = self.backend_factory(self.settings)
+        self._backends.append(backend)
+        try:
+            return backend.transcribe(
+                path,
+                language=self.settings.language,
+                log=lambda message: self.bridge.post(Log(message)),
+                track=kind,
+                progress=lambda message: self.bridge.post(Progress(message)),
+            )
+        finally:
+            if backend in self._backends:
+                self._backends.remove(backend)
+
+
+# ----------------------------------------------------------------------
+class FileFinalizer:
+    """Runs post-processing and transcription for an uploaded audio file in a worker thread."""
+
+    def __init__(self, bridge, settings, backend_factory=None):
+        self.bridge = bridge
+        self.settings = settings
+        self.backend_factory = backend_factory or (lambda s: build_backend(s))
+        self._backends = []
+        self._cancelled = threading.Event()
+
+    def cancel(self):
+        self._cancelled.set()
+        for backend in list(self._backends):
+            try:
+                backend.cancel()
+            except Exception:
+                pass
+
+    def run_async(self, file_path, base_name=None):
+        if not base_name:
+            base_name = paths.safe_output_name(os.path.splitext(os.path.basename(file_path))[0])
+        thread = threading.Thread(target=self._run, args=(file_path, base_name),
+                                  name="file-finalize", daemon=True)
+        thread.start()
+        return thread
+
+    def _run(self, file_path, base_name):
+        try:
+            self._process(file_path, base_name)
+        except TranscriptionError as exc:
+            self.bridge.post(Failed(message=str(exc)))
+        except Exception as exc:
+            self.bridge.post_exception("Unexpected error during file processing", exc)
+
+    def _process(self, file_path, base_name):
+        bridge, settings = self.bridge, self.settings
+        out_dir = settings.get_output_dir()
+        os.makedirs(out_dir, exist_ok=True)
+        os.makedirs(TMP_DIR, exist_ok=True)
+
+        bridge.post(Status("Loading audio file…", "orange"))
+        bridge.post(Log(f"Opening audio file: {os.path.basename(file_path)}…\n"))
+
+        from .audio.loader import load_audio_file
+        audio = load_audio_file(file_path, target_rate=dsp.TARGET_RATE)
+
+        if len(audio) == 0 or dsp.reference_level(audio) <= dsp.SILENCE_FLOOR:
+            raise TranscriptionError("The selected audio file is silent or contains no audible speech.")
+
+        # Save audio file to output folder as 16 kHz PCM WAV
+        mix_path = os.path.join(out_dir, f"{base_name}.wav")
+        sf.write(mix_path, dsp.limit_peak(audio), dsp.TARGET_RATE, subtype="PCM_16")
+        duration_s = len(audio) / float(dsp.TARGET_RATE)
+        bridge.post(Log(f"Audio file loaded: {os.path.basename(mix_path)} ({duration_s:.1f} s)\n"))
+
+        # Save normalized WAV into TMP_DIR for ASR
+        asr_path = os.path.join(TMP_DIR, f"{base_name}.file.asr.wav")
+        sf.write(asr_path, dsp.normalize_for_asr(audio), dsp.TARGET_RATE, subtype="PCM_16")
+
+        if self._cancelled.is_set():
+            raise TranscriptionError("Processing cancelled.")
+
+        bridge.post(Status("Transcribing audio file…", "purple"))
+        bridge.post(Log("\n--- Transcription ---\n"))
+        segments = self._transcribe(asr_path, "file")
+
+        _try_remove(asr_path)
+
+        if self._cancelled.is_set():
+            raise TranscriptionError("Processing cancelled.")
+
+        bridge.post(Status("Building transcript…", "orange"))
+        from .transcribe.base import format_timestamp
+        lines = []
+        for seg in segments:
+            speaker_str = f" {seg.speaker_hint}:" if getattr(seg, "speaker_hint", "") else ""
+            lines.append(f"{format_timestamp(seg.start)}{speaker_str} {seg.text}")
+
+        text = "\n".join(lines)
+        if not text.strip():
+            text = "[No spoken text was recognised.]"
+
+        txt_path = os.path.join(out_dir, f"{base_name}.txt")
+        with open(txt_path, "w", encoding="utf-8") as handle:
+            handle.write(text + "\n")
+
+        bridge.post(Finished(text=text, txt_path=txt_path, audio_path=mix_path))
+
+
     def _transcribe(self, path, kind):
         backend = self.backend_factory(self.settings)
         self._backends.append(backend)
