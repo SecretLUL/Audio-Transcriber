@@ -1,0 +1,10 @@
+{
+    "mic_device": "1: Mikrofon (Yeti X)",
+    "loop_device": "4: Kopfhörer (PRO X 2 LIGHTSPEED)",
+    "mic_gain_db": -8.0,
+    "loop_gain_db": 10.0,
+    "model_index": 0,
+    "elevenlabs_api_key": "sk_d3f9a431e0c35f5958c2b19b3ffe0fcf5da09b594a2103eb",
+    "live_transcribe": true,
+    "filename": "test.wav"
+}

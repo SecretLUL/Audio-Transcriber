@@ -1,0 +1,25 @@
+# Personal settings (contains encrypted API key)
+settings.json
+
+# Recordings and outputs
+output/
+
+# Downloaded binaries and models (multi-GB)
+bin/
+
+# Logs and temporary files
+*.log
+*.tmp
+.tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/

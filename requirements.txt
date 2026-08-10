@@ -1,0 +1,8 @@
+# Runtime dependencies
+PyAudioWPatch>=0.2.12    # WASAPI loopback (Windows)
+soundfile>=0.12.1        # WAV reading/writing
+numpy>=1.24
+scipy>=1.10              # polyphase resampling
+
+# Key storage uses the Windows DPAPI through ctypes and needs no extra
+# library. Tkinter ships with the standard Python installation on Windows.
