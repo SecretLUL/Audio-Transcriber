@@ -117,9 +117,17 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 
 ## 🎛️ User Interface & Tabs
 
-- 🎙️ **Recorder Tab**: Audio device selection, gain sliders, VUMeters, file naming, Upload button, and Record/Stop (`F5`).
-- ⚙️ **Settings Tab**: AI Model selection, Language choice, ElevenLabs API key, **Custom Output Directory** chooser with **Browse...** button, and switches.
+- 🎙️ **Recorder Tab**: Audio device selection, gain sliders, VUMeters, file naming, **Upload file** button, and **Record/Stop** (`F5`).
+- ⚙️ **Settings Tab**:
+  - **Transcription Engine**: Model selection (Tiny to Large-v3), Language choice, and ElevenLabs API key.
+  - **Output Directory**: Target folder selector for `.wav` audio files and `.txt` transcripts with **Browse...** button.
+  - **Processing Switches**:
+    - ⚡ **Live preview**: Real-time streaming transcription during active recording.
+    - 🎛️ **Separate tracks**: Dual-channel capture mode (Microphone + System Audio).
+    - 🎙️ **VAD**: Voice Activity Detection pre-filtering (Silero VAD).
+    - 💾 **Keep raw tracks**: Preserves unmixed separate microphone and system audio `.wav` files for post-processing in DAWs/NLEs (e.g. Audacity, Premiere Pro).
 - 📄 **Transcript Tab**: Full transcript viewer with **Copy**, **Save** (save as `.txt`), and **Clear** toolbar buttons.
+
 
 
 
