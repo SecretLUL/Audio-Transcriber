@@ -15,7 +15,7 @@ SCHEMA_VERSION = 2
 
 # (display name, whisper model name or None for cloud)
 MODEL_CHOICES = [
-    ("✨ ElevenLabs Scribe (Cloud API - state of the art)", None),
+    ("ElevenLabs Scribe (Cloud API - state of the art)", None),
     ("tiny (75 MB - very fast)", "tiny"),
     ("base (142 MB - fast)", "base"),
     ("small (466 MB - balanced)", "small"),

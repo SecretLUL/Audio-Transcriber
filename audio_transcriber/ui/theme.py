@@ -16,47 +16,47 @@ from tkinter import ttk
 # ----------------------------------------------------------------------
 # Colours
 # ----------------------------------------------------------------------
-BG = "#16181d"            # window background
-BG_DEEP = "#101216"       # header, input fields
-CARD = "#1e2128"          # card surface
-CARD_HI = "#252932"       # card under the pointer
-FIELD = "#171a20"         # input field
-BORDER = "#2b3039"        # card border
-BORDER_HI = "#3c4453"     # border on focus/hover
+BG = "#121418"            # window background
+BG_DEEP = "#0a0c0e"       # deep background, input fields
+CARD = "#1b1e26"          # card surface
+CARD_HI = "#242834"       # card under the pointer
+FIELD = "#14171f"         # input field background
+BORDER = "#2a2f3d"        # card border
+BORDER_HI = "#3e4659"     # border on focus/hover
 
-TEXT = "#e8eaed"          # body text
-TEXT_DIM = "#98a0ad"      # labels
-TEXT_MUTE = "#69727f"     # hints, footnotes
+TEXT = "#f1f5f9"          # body text
+TEXT_DIM = "#94a3b8"      # labels
+TEXT_MUTE = "#64748b"     # hints, footnotes
 
-ACCENT = "#4f8cff"        # primary colour
-ACCENT_HI = "#6ba0ff"
-ACCENT_LO = "#3570dd"
-REC = "#ff4757"           # recording
-REC_HI = "#ff6b78"
-OK = "#22d67b"            # success
-WARN = "#ffd23f"          # warning
-DANGER = "#ff4757"
+ACCENT = "#38bdf8"        # primary cyan/sky blue
+ACCENT_HI = "#7dd3fc"
+ACCENT_LO = "#0284c7"
+REC = "#f43f5e"           # recording crimson
+REC_HI = "#fb7185"
+OK = "#10b981"            # success emerald
+WARN = "#f59e0b"          # warning amber
+DANGER = "#f43f5e"
 
 # Level meter
-METER_LOW = "#22d67b"
-METER_MID = "#ffd23f"
-METER_HIGH = "#ff4757"
-METER_OFF_LOW = "#16362a"
-METER_OFF_MID = "#3a3418"
-METER_OFF_HIGH = "#3d1a20"
-METER_BG = "#0e1014"
+METER_LOW = "#10b981"
+METER_MID = "#f59e0b"
+METER_HIGH = "#f43f5e"
+METER_OFF_LOW = "#142922"
+METER_OFF_MID = "#2e2110"
+METER_OFF_HIGH = "#33161c"
+METER_BG = "#0a0c0e"
 
 # Speaker colours in the transcript
-SPEAKER_SELF = "#6ba0ff"
-SPEAKER_OTHER = "#22d67b"
-TIMESTAMP = "#69727f"
+SPEAKER_SELF = "#38bdf8"
+SPEAKER_OTHER = "#34d399"
+TIMESTAMP = "#64748b"
 
 # ----------------------------------------------------------------------
 # Spacing (4 point grid)
 # ----------------------------------------------------------------------
 XS, SM, MD, LG, XL, XXL = 4, 8, 12, 16, 24, 32
 
-RADIUS_CARD = 12
+RADIUS_CARD = 14
 RADIUS_CTRL = 8
 RADIUS_PILL = 999
 

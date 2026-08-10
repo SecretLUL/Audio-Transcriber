@@ -10,12 +10,13 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
+from . import icons
 from . import theme as T
 
 
 # ======================================================================
 class Card(tk.Canvas):
-    """A rounded surface with an optional heading.
+    """A rounded surface with an optional heading and icon accent.
 
     The trick: the rounded polygon sits on the canvas while the actual content
     lives in an embedded frame of the same background colour. Because the
@@ -24,14 +25,16 @@ class Card(tk.Canvas):
     """
 
     def __init__(self, parent, title=None, hint=None, pad=(16, 13),
-                 bg=T.BG, fill=T.CARD, stretch=False):
+                 bg=T.BG, fill=T.CARD, stretch=False, icon_name=None):
         super().__init__(parent, bg=bg, highlightthickness=0, bd=0, height=64)
         self.padx, self.pady = pad
         self._fill = fill
         self._title = title
         self._hint = hint
-        self._head_h = 24 if title else 0
+        self._icon_name = icon_name
+        self._head_h = 26 if title else 0
         self._shape = None
+        self._icon_img = None
         self._syncing = False
         # stretch=True: the card fills the available space instead of deriving
         # its height from the content (used for the transcript pane).
@@ -41,9 +44,14 @@ class Card(tk.Canvas):
         self._win = self.create_window(self.padx, self.pady + self._head_h,
                                        anchor="nw", window=self.body)
         if title:
+            x_off = self.padx
+            if icon_name:
+                self._icon_img = icons.get_icon(icon_name, size=16)
+                self.create_image(self.padx, self.pady - 1, anchor="nw", image=self._icon_img)
+                x_off += 22
             self._title_item = self.create_text(
-                self.padx, self.pady - 1, anchor="nw", text=title.upper(),
-                fill=T.TEXT_MUTE, font=T.fonts["section"])
+                x_off, self.pady - 1, anchor="nw", text=title.upper(),
+                fill=T.TEXT_DIM, font=T.fonts["section"])
         if hint:
             self._hint_item = self.create_text(
                 0, self.pady - 1, anchor="ne", text=hint,
@@ -110,20 +118,22 @@ class Button(tk.Canvas):
     }
 
     def __init__(self, parent, text="", command=None, kind="ghost",
-                 width=150, height=38, icon="", bg=T.CARD, radius=None,
-                 state="normal"):
+                 width=150, height=38, icon="", icon_name=None, bg=T.CARD,
+                 radius=None, state="normal"):
         super().__init__(parent, bg=bg, highlightthickness=0, bd=0,
                          width=width, height=height)
         self._kind = kind
         self._command = command
         self._text = text
         self._icon = icon
+        self._icon_name = icon_name or (icon if icon in icons._RENDERERS else None)
         self._radius = radius if radius is not None else T.RADIUS_CTRL
         self._state = str(state)
         self._hover = False
         self._pressed = False
         self._shape = None
         self._label = None
+        self._img_obj = None
 
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
@@ -137,6 +147,7 @@ class Button(tk.Canvas):
         state = kw.pop("state", None)
         text = kw.pop("text", None)
         kind = kw.pop("kind", None)
+        icon_name = kw.pop("icon_name", None)
         if state is not None:
             self._state = str(state)
             self._hover = self._pressed = False
@@ -144,8 +155,10 @@ class Button(tk.Canvas):
             self._text = text
         if kind is not None:
             self._kind = kind
+        if icon_name is not None:
+            self._icon_name = icon_name
         result = super().configure(cnf, **kw) if (cnf or kw) else None
-        if state is not None or text is not None or kind is not None:
+        if state is not None or text is not None or kind is not None or icon_name is not None:
             self._render()
         return result
 
@@ -208,9 +221,26 @@ class Button(tk.Canvas):
             self._shape = T.round_rect(
                 self, 1, 1, width - 1, height - 1, self._radius,
                 fill=fill or self["bg"], outline=border or "", width=1)
-        label = f"{self._icon}  {self._text}".strip() if self._icon else self._text
-        self.create_text(width / 2, height / 2 + 1, text=label, fill=fg,
-                         font=T.fonts["button"])
+
+        # Check for SVG icon
+        if self._icon_name and self._icon_name in icons._RENDERERS:
+            icon_sz = min(20, height - 14)
+            self._img_obj = icons.get_icon(self._icon_name, size=icon_sz)
+            
+            font = T.fonts["button"]
+            text_w = font.measure(self._text) if self._text else 0
+            gap = 8 if self._text else 0
+            total_w = icon_sz + gap + text_w
+            
+            start_x = (width - total_w) / 2
+            self.create_image(start_x + icon_sz / 2, height / 2, image=self._img_obj)
+            if self._text:
+                self.create_text(start_x + icon_sz + gap + text_w / 2, height / 2 + 1,
+                                 text=self._text, fill=fg, font=font)
+        else:
+            label = f"{self._icon}  {self._text}".strip() if self._icon else self._text
+            self.create_text(width / 2, height / 2 + 1, text=label, fill=fg,
+                             font=T.fonts["button"])
 
 
 # ======================================================================
@@ -535,8 +565,16 @@ class StatusPill(tk.Canvas):
             alpha = 0.45 + 0.55 * (0.5 + 0.5 * math.sin(self._phase))
         dot = T.mix(self["bg"], self._colour, alpha)
 
+        text_w = T.fonts["small"].measure(self._text)
+        pill_w = text_w + 32
+        x0 = max(0, width - pill_w)
+
+        # Glassmorphic rounded pill background
+        T.round_rect(self, x0, 1, width - 1, height - 1, (height - 2) / 2,
+                     fill=T.CARD, outline=T.BORDER, width=1)
+
         radius = 4
-        cx = width - 8 - T.fonts["small"].measure(self._text) - 12
+        cx = x0 + 14
         self.create_oval(cx - radius, mid - radius, cx + radius, mid + radius,
                          fill=dot, outline="")
         if self._pulse:
@@ -544,7 +582,7 @@ class StatusPill(tk.Canvas):
             self.create_oval(cx - radius - 4, mid - radius - 4,
                              cx + radius + 4, mid + radius + 4,
                              outline=halo, width=1)
-        self.create_text(width - 8, mid, anchor="e", text=self._text,
+        self.create_text(x0 + 26, mid, anchor="w", text=self._text,
                          fill=T.TEXT_DIM, font=T.fonts["small"])
 
 
@@ -665,12 +703,18 @@ def _looks_like_timestamp(token):
 
 # ======================================================================
 class Field(tk.Frame):
-    """A labelled entry or select field with a consistent height."""
+    """A labelled entry or select field with an optional icon."""
 
-    def __init__(self, parent, label, widget_factory, bg=T.CARD, hint=None):
+    def __init__(self, parent, label, widget_factory, bg=T.CARD, hint=None, icon_name=None):
         super().__init__(parent, bg=bg)
-        tk.Label(self, text=label, bg=bg, fg=T.TEXT_DIM, font=T.fonts["small"],
-                 anchor="w").pack(fill=tk.X, pady=(0, 4))
+        lbl_frame = tk.Frame(self, bg=bg)
+        lbl_frame.pack(fill=tk.X, pady=(0, 4))
+        self._icon_img = None
+        if icon_name:
+            self._icon_img = icons.get_icon(icon_name, size=15)
+            tk.Label(lbl_frame, image=self._icon_img, bg=bg).pack(side=tk.LEFT, padx=(0, 5))
+        tk.Label(lbl_frame, text=label, bg=bg, fg=T.TEXT_DIM, font=T.fonts["small"],
+                 anchor="w").pack(side=tk.LEFT, fill=tk.X)
         self.widget = widget_factory(self)
         self.widget.pack(fill=tk.X)
         if hint:
