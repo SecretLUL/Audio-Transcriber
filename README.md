@@ -41,7 +41,6 @@ audio_transcriber/
         theme.py            Color tokens, spacing grid & dark clam ttk styles
         widgets.py          Hand-drawn Canvas UI elements (Cards, Switches, Sliders, Meters, Transcript)
         app.py              Main application window
-tests/                      Unit & integration test suite (118 tests, zero external dependencies)
 legacy/                     Previous single-file implementation (archived for reference)
 ```
 
@@ -58,21 +57,6 @@ Both tracks (microphone and loopback system audio) are transcribed **independent
 * **Crosstalk / Bleed Filter**: Voice from speakers bleeding into the microphone is discarded based on track-relative levels (removing gain slider dependency).
 * **Hallucination Filter**: Segments without meaningful signal energy on their own track are dropped.
 * **Duplicate Merging**: When identical text is recognized on both tracks, the clearer/louder track wins. In case of a tie, the system track wins (because crosstalk physically flows only from speakers to microphone, never vice versa).
-
-## Running Tests
-
-```shell
-python run_tests.py             Run all unit tests
-python run_tests.py dsp         Run specific test module (e.g., tests/test_dsp.py)
-python run_tests.py -v          Run with verbose output
-```
-
-Hardware capture tests against real WASAPI devices can be explicitly enabled:
-
-```shell
-set AUDIO_TRANSCRIBER_HW_TEST=1
-python run_tests.py capture_hardware
-```
 
 ## Technical Notes & Limitations
 
