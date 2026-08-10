@@ -133,8 +133,9 @@ class RecorderApp:
 
     # ------------------------------------------------------------------
     def _build_sources(self, parent):
-        card = W.Card(parent, title="Sources", icon_name="microphone")
+        card = W.Card(parent, title="Sources", icon_name="sources")
         card.pack(fill=tk.X, pady=(0, T.SM))
+
         self.sources_card = card
         body = card.body
 
@@ -229,7 +230,7 @@ class RecorderApp:
 
     # ------------------------------------------------------------------
     def _build_output_folder(self, parent):
-        card = W.Card(parent, title="Output Directory", icon_name="transcript")
+        card = W.Card(parent, title="Output Directory", icon_name="folder")
         card.pack(fill=tk.X, pady=(0, T.SM))
         body = card.body
         body.columnconfigure(0, weight=1)
@@ -242,7 +243,7 @@ class RecorderApp:
             wrap, "Target Folder",
             lambda p: ttk.Entry(p, style="Dark.TEntry", font=T.fonts["body"]),
             hint="Custom directory where transcripts (.txt) and audio (.wav) will be saved.",
-            icon_name="globe"
+            icon_name="folder"
         )
         self.out_dir_field.grid(row=0, column=0, sticky="ew")
         self.output_dir_entry = self.out_dir_field.widget
@@ -274,8 +275,9 @@ class RecorderApp:
 
     # ------------------------------------------------------------------
     def _build_options_card(self, parent):
-        card = W.Card(parent, title="Processing Options", icon_name="sparkle")
+        card = W.Card(parent, title="Processing Options", icon_name="settings")
         card.pack(fill=tk.X, pady=(0, T.SM))
+
         body = card.body
         body.columnconfigure(0, weight=1)
 
