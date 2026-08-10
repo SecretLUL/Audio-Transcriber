@@ -76,10 +76,35 @@ class RecorderApp:
         outer.pack(fill=tk.BOTH, expand=True, padx=T.XL, pady=(T.LG, T.LG))
 
         self._build_header(outer)
-        self._build_sources(outer)
-        self._build_ai(outer)
-        self._build_record_bar(outer)
-        self._build_transcript(outer)
+
+        self.notebook = ttk.Notebook(outer)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+
+        self.tab_recorder = tk.Frame(self.notebook, bg=T.BG)
+        self.tab_settings = tk.Frame(self.notebook, bg=T.BG)
+        self.tab_transcript = tk.Frame(self.notebook, bg=T.BG)
+
+        self.notebook.add(self.tab_recorder, text="  🎙️ Recorder  ")
+        self.notebook.add(self.tab_settings, text="  ⚙️ Settings  ")
+        self.notebook.add(self.tab_transcript, text="  📄 Transcript  ")
+
+        # Tab 1: Recorder
+        recorder_container = tk.Frame(self.tab_recorder, bg=T.BG)
+        recorder_container.pack(fill=tk.BOTH, expand=True, pady=(T.SM, 0))
+        self._build_sources(recorder_container)
+        self._build_record_bar(recorder_container)
+
+        # Tab 2: Settings
+        settings_container = tk.Frame(self.tab_settings, bg=T.BG)
+        settings_container.pack(fill=tk.BOTH, expand=True, pady=(T.SM, 0))
+        self._build_ai(settings_container)
+        self._build_output_folder(settings_container)
+        self._build_options_card(settings_container)
+
+        # Tab 3: Transcript
+        transcript_container = tk.Frame(self.tab_transcript, bg=T.BG)
+        transcript_container.pack(fill=tk.BOTH, expand=True, pady=(T.SM, 0))
+        self._build_transcript(transcript_container)
 
     # ------------------------------------------------------------------
     def _build_header(self, parent):
@@ -159,7 +184,7 @@ class RecorderApp:
 
     # ------------------------------------------------------------------
     def _build_ai(self, parent):
-        card = W.Card(parent, title="Transcription", icon_name="sparkle")
+        card = W.Card(parent, title="Transcription Engine", icon_name="sparkle")
         card.pack(fill=tk.X, pady=(0, T.SM))
         body = card.body
         body.columnconfigure(0, weight=3, uniform="ai")
@@ -202,26 +227,81 @@ class RecorderApp:
                                padx=(T.SM, 0), pady=(22, 0))
         self._key_visible = False
 
-        # --- Options ---------------------------------------------------
+    # ------------------------------------------------------------------
+    def _build_output_folder(self, parent):
+        card = W.Card(parent, title="Output Directory", icon_name="transcript")
+        card.pack(fill=tk.X, pady=(0, T.SM))
+        body = card.body
+        body.columnconfigure(0, weight=1)
+
+        wrap = tk.Frame(body, bg=T.CARD)
+        wrap.grid(row=0, column=0, sticky="ew")
+        wrap.columnconfigure(0, weight=1)
+
+        self.out_dir_field = W.Field(
+            wrap, "Target Folder",
+            lambda p: ttk.Entry(p, style="Dark.TEntry", font=T.fonts["body"]),
+            hint="Custom directory where transcripts (.txt) and audio (.wav) will be saved.",
+            icon_name="globe"
+        )
+        self.out_dir_field.grid(row=0, column=0, sticky="ew")
+        self.output_dir_entry = self.out_dir_field.widget
+        self.output_dir_entry.insert(0, self.settings.output_dir or paths.OUT_DIR)
+
+        browse_btn = W.Button(wrap, text="Browse...", icon_name="upload",
+                              kind="quiet", width=100, height=32,
+                              command=self._browse_output_dir)
+        browse_btn.grid(row=0, column=1, sticky="s", padx=(T.SM, 0), pady=(22, 0))
+
+        reset_btn = W.Button(wrap, text="Reset", kind="ghost",
+                             width=74, height=32,
+                             command=self._reset_output_dir)
+        reset_btn.grid(row=0, column=2, sticky="s", padx=(T.XS, 0), pady=(22, 0))
+
+    def _browse_output_dir(self):
+        current = self.output_dir_entry.get().strip() or self.settings.get_output_dir()
+        chosen = filedialog.askdirectory(
+            title="Select Output Folder for Transcripts & Audio",
+            initialdir=current if os.path.exists(current) else paths.OUT_DIR
+        )
+        if chosen:
+            self.output_dir_entry.delete(0, tk.END)
+            self.output_dir_entry.insert(0, os.path.normpath(chosen))
+
+    def _reset_output_dir(self):
+        self.output_dir_entry.delete(0, tk.END)
+        self.output_dir_entry.insert(0, paths.OUT_DIR)
+
+    # ------------------------------------------------------------------
+    def _build_options_card(self, parent):
+        card = W.Card(parent, title="Processing Options", icon_name="sparkle")
+        card.pack(fill=tk.X, pady=(0, T.SM))
+        body = card.body
+        body.columnconfigure(0, weight=1)
+
         options = tk.Frame(body, bg=T.CARD)
-        options.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(T.MD, 0))
+        options.grid(row=0, column=0, sticky="ew")
 
         self.live_var = tk.BooleanVar(value=self.settings.live_transcribe)
         self.separate_var = tk.BooleanVar(value=self.settings.separate_tracks)
         self.vad_var = tk.BooleanVar(value=self.settings.use_vad)
+        self.keep_raw_var = tk.BooleanVar(value=self.settings.keep_raw_tracks)
 
         W.Switch(options, "Live preview", self.live_var).grid(
             row=0, column=0, sticky="w")
         W.Switch(options, "Separate tracks", self.separate_var).grid(
-            row=0, column=1, sticky="w", padx=(T.LG, 0))
+            row=0, column=1, sticky="w", padx=(T.MD, 0))
         W.Switch(options, "VAD", self.vad_var).grid(
-            row=0, column=2, sticky="w", padx=(T.LG, 0))
+            row=0, column=2, sticky="w", padx=(T.MD, 0))
+        W.Switch(options, "Keep raw tracks", self.keep_raw_var).grid(
+            row=0, column=3, sticky="w", padx=(T.MD, 0))
 
         self.save_btn = W.Button(options, text="Save settings",
-                                 kind="ghost", width=178, height=32,
+                                 kind="ghost", width=150, height=32,
                                  command=self.save_settings)
-        self.save_btn.grid(row=0, column=3, sticky="e")
-        options.columnconfigure(3, weight=1)
+        self.save_btn.grid(row=0, column=4, sticky="e", padx=(T.MD, 0))
+        options.columnconfigure(4, weight=1)
+
 
     # ------------------------------------------------------------------
     def _build_record_bar(self, parent):
@@ -303,12 +383,15 @@ class RecorderApp:
         self.transcript.set_transcript(event.text)
         self.status.set("done · transcript saved", T.OK)
         self._reset_controls()
+        self.notebook.select(self.tab_transcript)
+        out_folder = os.path.dirname(event.txt_path)
         messagebox.showinfo(
             "Done",
             f"Transcription complete.\n\n"
             f"Audio:      {os.path.basename(event.audio_path)}\n"
             f"Transcript: {os.path.basename(event.txt_path)}\n\n"
-            f"Folder: {paths.OUT_DIR}")
+            f"Folder: {out_folder}")
+
 
     def _on_failed(self, event):
         self.transcript.append(f"\n[ERROR] {event.message}\n")
@@ -503,7 +586,11 @@ class RecorderApp:
         settings.live_transcribe = bool(self.live_var.get())
         settings.separate_tracks = bool(self.separate_var.get())
         settings.use_vad = bool(self.vad_var.get())
+        settings.keep_raw_tracks = bool(self.keep_raw_var.get())
         settings.filename = paths.safe_output_name(self.filename_entry.get())
+        raw_out = self.output_dir_entry.get().strip()
+        settings.output_dir = "" if raw_out == paths.OUT_DIR else raw_out
+
 
     def save_settings(self):
         self._sync_settings_from_ui()

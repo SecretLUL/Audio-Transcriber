@@ -78,7 +78,8 @@ class Finalizer:
     # ------------------------------------------------------------------
     def _process(self, recording, base_name):
         bridge, settings = self.bridge, self.settings
-        os.makedirs(OUT_DIR, exist_ok=True)
+        out_dir = settings.get_output_dir()
+        os.makedirs(out_dir, exist_ok=True)
 
         for warning in recording.warnings:
             bridge.post(Log(f"Note: {warning}\n"))
@@ -97,7 +98,7 @@ class Finalizer:
         system = _pad_to(system, length)
 
         # --- 2. Audible mixdown (with the gain sliders) -----------------
-        mix_path = os.path.join(OUT_DIR, f"{base_name}.wav")
+        mix_path = os.path.join(out_dir, f"{base_name}.wav")
         stereo = np.column_stack([
             dsp.limit_peak(dsp.apply_gain(mic, settings.mic_gain_db)),
             dsp.limit_peak(dsp.apply_gain(system, settings.loop_gain_db)),
@@ -159,7 +160,10 @@ class Finalizer:
         if not text.strip():
             text = "[No spoken text was recognised.]"
 
-        txt_path = os.path.join(OUT_DIR, f"{base_name}.txt")
+        txt_path = os.path.join(out_dir, f"{base_name}.txt")
+        with open(txt_path, "w", encoding="utf-8") as handle:
+            handle.write(text + "\n")
+
         with open(txt_path, "w", encoding="utf-8") as handle:
             handle.write(text + "\n")
 
@@ -227,7 +231,8 @@ class FileFinalizer:
 
     def _process(self, file_path, base_name):
         bridge, settings = self.bridge, self.settings
-        os.makedirs(OUT_DIR, exist_ok=True)
+        out_dir = settings.get_output_dir()
+        os.makedirs(out_dir, exist_ok=True)
         os.makedirs(TMP_DIR, exist_ok=True)
 
         bridge.post(Status("Loading audio file…", "orange"))
@@ -240,7 +245,7 @@ class FileFinalizer:
             raise TranscriptionError("The selected audio file is silent or contains no audible speech.")
 
         # Save audio file to output folder as 16 kHz PCM WAV
-        mix_path = os.path.join(OUT_DIR, f"{base_name}.wav")
+        mix_path = os.path.join(out_dir, f"{base_name}.wav")
         sf.write(mix_path, dsp.limit_peak(audio), dsp.TARGET_RATE, subtype="PCM_16")
         duration_s = len(audio) / float(dsp.TARGET_RATE)
         bridge.post(Log(f"Audio file loaded: {os.path.basename(mix_path)} ({duration_s:.1f} s)\n"))
@@ -272,11 +277,12 @@ class FileFinalizer:
         if not text.strip():
             text = "[No spoken text was recognised.]"
 
-        txt_path = os.path.join(OUT_DIR, f"{base_name}.txt")
+        txt_path = os.path.join(out_dir, f"{base_name}.txt")
         with open(txt_path, "w", encoding="utf-8") as handle:
             handle.write(text + "\n")
 
         bridge.post(Finished(text=text, txt_path=txt_path, audio_path=mix_path))
+
 
     def _transcribe(self, path, kind):
         backend = self.backend_factory(self.settings)

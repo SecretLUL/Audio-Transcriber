@@ -164,7 +164,19 @@ def apply(root):
         ("Vertical.Scrollbar.trough", {"sticky": "ns", "children": [
             ("Vertical.Scrollbar.thumb", {"expand": 1, "sticky": "nswe"})]})])
 
+    # --- Notebook (Tabs) -----------------------------------------------
+    style.configure("TNotebook", background=BG, borderwidth=0, tabmargins=[0, 0, 0, 8])
+    style.configure("TNotebook.Tab", background=CARD, foreground=TEXT_DIM,
+                    padding=(18, 10), font=fonts["button"], borderwidth=0,
+                    lightcolor=BORDER, darkcolor=BORDER)
+    style.map("TNotebook.Tab",
+              background=[("selected", CARD_HI), ("active", BORDER)],
+              foreground=[("selected", ACCENT), ("active", TEXT)],
+              lightcolor=[("selected", ACCENT)],
+              darkcolor=[("selected", ACCENT)])
+
     return style
+
 
 
 # ----------------------------------------------------------------------

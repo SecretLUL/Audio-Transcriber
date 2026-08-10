@@ -56,6 +56,8 @@ No Python installation or terminal setup required!
 
 - 🎤 **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (system audio).
 - 📁 **Audio File Upload & Transcription**: Upload and transcribe any local audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.aac`, `.wma`, `.mp4`, `.webm`, `.opus`, etc.).
+- 📂 **Custom Output Directory**: Choose any target folder on your system for saving output `.wav` audio files and `.txt` transcripts.
+- 🗂️ **Tabbed Interface**: Modern tabbed layout dividing controls cleanly into **Recorder**, **Settings**, and **Transcript**.
 - 🗣️ **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
 - 🤖 **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
 - ☁️ **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
@@ -113,13 +115,12 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 
 ---
 
-## 🎛️ User Interface & Controls
+## 🎛️ User Interface & Tabs
 
-- ⏺️ **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
-- 📁 **Upload file**: Select and transcribe any local audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.aac`, `.wma`, etc.).
-- 🎚️ **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
-- 💬 **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
-- 💾 **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
+- 🎙️ **Recorder Tab**: Audio device selection, gain sliders, VUMeters, file naming, Upload button, and Record/Stop (`F5`).
+- ⚙️ **Settings Tab**: AI Model selection, Language choice, ElevenLabs API key, **Custom Output Directory** chooser with **Browse...** button, and switches.
+- 📄 **Transcript Tab**: Full transcript viewer with **Copy**, **Save** (save as `.txt`), and **Clear** toolbar buttons.
+
 
 
 ---
