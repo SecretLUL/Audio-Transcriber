@@ -77,7 +77,7 @@ def enumerate_devices(pa, wasapi_only=True):
         is_loopback = bool(info.get("isLoopbackDevice", False))
         if not is_loopback and not _IS_WINDOWS and int(info.get("maxInputChannels", 0)) > 0:
             name_low = dev_name.lower()
-            if "monitor" in name_low or "loopback" in name_low:
+            if any(kw in name_low for kw in ("monitor", "loopback", "blackhole", "soundflower")):
                 is_loopback = True
 
         devices.append(Device(

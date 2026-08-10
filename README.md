@@ -37,15 +37,15 @@ No Python installation or terminal setup required!
 
 ---
 
-## 🐧 Platform Compatibility
+## 🐧 Platform Compatibility & Downloads
 
 | Operating System | Pre-built Executable | Running from Source | Audio Capture Backend |
 | :--- | :---: | :---: | :--- |
 | **Windows 10 / 11 (x64)** | ✅ Supported (`.exe` in `.zip`) | ✅ Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
 | **Linux (Ubuntu, Debian, Arch, etc.)** | ✅ Supported (`.tar.gz`) | ✅ Supported | PulseAudio / PipeWire Monitor (`pyaudio`) |
-| **macOS** | ⚠️ Experimental | ⚠️ Experimental | Requires BlackHole / Soundflower audio loopback |
+| **macOS (Intel & Apple Silicon M1-M4)** | ✅ Supported (`.zip`) | ✅ Supported | CoreAudio + [BlackHole](https://github.com/ExistentialAudio/BlackHole) Loopback |
 
-> 🤖 **Automated CI/CD Pipeline**: GitHub Actions automatically compiles and packages standalone releases for **Windows** and **Linux** on every release tag (`v*`).
+> 🤖 **Automated CI/CD Pipeline**: GitHub Actions automatically compiles and packages standalone releases for **Windows**, **Linux**, and **macOS** on every release tag (`v*`).
 
 ---
 
