@@ -168,14 +168,31 @@ def apply(root):
     style.configure("TNotebook", background=BG, borderwidth=0, tabmargins=[0, 0, 0, 8])
     style.configure("TNotebook.Tab", background=CARD, foreground=TEXT_DIM,
                     padding=(18, 10), font=fonts["button"], borderwidth=0,
-                    lightcolor=BORDER, darkcolor=BORDER)
+                    focuscolor="", lightcolor=BORDER, darkcolor=BORDER)
     style.map("TNotebook.Tab",
               background=[("selected", CARD_HI), ("active", BORDER)],
               foreground=[("selected", ACCENT), ("active", TEXT)],
+              focuscolor=[("selected", ""), ("active", ""), ("focus", "")],
               lightcolor=[("selected", ACCENT)],
               darkcolor=[("selected", ACCENT)])
 
+    style.layout("TNotebook.Tab", [
+        ("Notebook.tab", {
+            "sticky": "nswe",
+            "children": [
+                ("Notebook.padding", {
+                    "side": "top",
+                    "sticky": "nswe",
+                    "children": [
+                        ("Notebook.label", {"side": "top", "sticky": ""})
+                    ]
+                })
+            ]
+        })
+    ])
+
     return style
+
 
 
 
