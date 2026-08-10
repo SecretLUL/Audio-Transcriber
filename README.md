@@ -1,11 +1,51 @@
 # 🎙️ Audio AI Recorder & Transcriber 🚀
 
+[![Release: v1.0.0](https://img.shields.io/github/v/release/SecretLUL/Audio-Transcriber?color=7289da&label=Release)](https://github.com/SecretLUL/Audio-Transcriber/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%20WASAPI-0078D6.svg)](https://docs.microsoft.com/en-us/windows/win32/coreaudio/wasapi)
 [![FOSS: 100%](https://img.shields.io/badge/FOSS-100%25-brightgreen.svg)](#-license--foss)
 
 An advanced, privacy-focused Windows audio recording and AI transcription suite. It captures **microphone** and **system audio** independently and generates high-accuracy meeting transcripts with precise **speaker attribution** — locally via `whisper.cpp` or in the cloud via the ElevenLabs Scribe API.
+
+---
+
+## 🚀 Quick Start
+
+### Option A: Pre-built Standalone Release (Recommended for Users 💻)
+
+No Python installation or terminal setup required!
+
+1. Download the latest **[`AudioTranscriber-v1.0.0-windows-x64.zip`](https://github.com/SecretLUL/Audio-Transcriber/releases/latest)** package from the [Releases Page](https://github.com/SecretLUL/Audio-Transcriber/releases).
+2. Extract the `.zip` archive to any folder on your PC.
+3. Double-click `AudioTranscriber.exe` to launch the application.
+
+---
+
+### Option B: Running from Source (For Developers 🛠️)
+
+1. Clone the repository and install the Python dependencies:
+   ```shell
+   git clone https://github.com/SecretLUL/Audio-Transcriber.git
+   cd Audio-Transcriber
+   pip install -r requirements.txt
+   ```
+2. Launch the application:
+   - **No console window**: Double-click `Start-Recorder.vbs`
+   - **With debug terminal**: Run `python main.py`
+
+> 💡 **Note**: `whisper.cpp` binaries and GGML models are automatically fetched on demand to the `bin/` directory on first launch.
+
+---
+
+## 🐧 Platform Compatibility
+
+| Operating System | Pre-built Executable | Running from Source | Audio Capture Backend |
+| :--- | :---: | :---: | :--- |
+| **Windows 10 / 11 (x64)** | ✅ Supported (`.exe`) | ✅ Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
+| **Linux (Ubuntu, Arch, etc.)** | ❌ Not in v1.0.0 | ⚠️ Experimental | Requires PulseAudio / PipeWire monitor abstraction |
+| **macOS** | ❌ Not supported | ⚠️ Experimental | Requires BlackHole / Soundflower audio loopback |
+
+> 📌 **Note**: Standalone releases (`.exe`) and hardware-level secret storage (`secretstore.py`) rely on Windows WASAPI and DPAPI APIs. Native Linux (PulseAudio/PipeWire) support and multi-platform CI/CD builds are on the roadmap for future updates!
 
 ---
 
@@ -23,37 +63,13 @@ An advanced, privacy-focused Windows audio recording and AI transcription suite.
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Installation
-
-Install the required Python packages:
-
-```shell
-pip install -r requirements.txt
-```
-
-> 💡 **Note**: `whisper.cpp` binaries and GGML models are automatically fetched on demand to the `bin/` directory.
-
-### 2. Running the Application
-
-* **Double-click launch** (no console window):
-  ```shell
-  Start-Recorder.vbs
-  ```
-* **Command line launch** (with debugging logs):
-  ```shell
-  python main.py
-  ```
-
----
-
 ## 🏗️ Architecture & Project Structure
 
 ```text
 📁 Audio-Transcriber/
  ├── 📄 main.py                     🚀 Entry point for python / pythonw launch
  ├── 📜 Start-Recorder.vbs          🖱️ Windows double-click launcher
+ ├── 📄 build_release.py            📦 Automated PyInstaller standalone build & zip packaging
  ├── 📄 requirements.txt            📦 Core dependencies (pyaudiowpatch, soundfile, scipy, numpy)
  ├── 📄 LICENSE                     📄 MIT License (100% FOSS)
  ├── 📄 README.md                   📖 Project documentation
