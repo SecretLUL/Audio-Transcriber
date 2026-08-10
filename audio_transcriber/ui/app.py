@@ -651,10 +651,16 @@ class RecorderApp:
     def _on_mic_gain(self, value):
         self.settings.mic_gain_db = float(value)
         self.mic_gain_label.config(text=f"{float(value):+.1f} dB")
+        if hasattr(self, "mic_meter") and hasattr(self, "engine"):
+            gain_factor = 10.0 ** (self.settings.mic_gain_db / 20.0)
+            self.mic_meter.set_level(self.engine.mic_level * gain_factor)
 
     def _on_sys_gain(self, value):
         self.settings.loop_gain_db = float(value)
         self.sys_gain_label.config(text=f"{float(value):+.1f} dB")
+        if hasattr(self, "sys_meter") and hasattr(self, "engine"):
+            gain_factor = 10.0 ** (self.settings.loop_gain_db / 20.0)
+            self.sys_meter.set_level(self.engine.sys_level * gain_factor)
 
     # ==================================================================
     # Ticker
@@ -662,9 +668,12 @@ class RecorderApp:
     def _tick(self):
         if self._shutting_down:
             return
-        self.mic_meter.set_level(self.engine.mic_level)
-        self.sys_meter.set_level(self.engine.sys_level)
+        mic_gain = 10.0 ** (self.settings.mic_gain_db / 20.0)
+        sys_gain = 10.0 ** (self.settings.loop_gain_db / 20.0)
+        self.mic_meter.set_level(self.engine.mic_level * mic_gain)
+        self.sys_meter.set_level(self.engine.sys_level * sys_gain)
         self.status.tick(METER_INTERVAL_MS / 1000.0)
+
 
         if self.recording_started_at is not None:
             elapsed = int(time.monotonic() - self.recording_started_at)
