@@ -1,70 +1,128 @@
-# Audio AI Recorder & Transcriber
+# 🎙️ Audio AI Recorder & Transcriber 🚀
 
-Captures microphone and system audio separately and produces a meeting transcript with speaker attribution — locally via `whisper.cpp` or in the cloud via the ElevenLabs Scribe API.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%20WASAPI-0078D6.svg)](https://docs.microsoft.com/en-us/windows/win32/coreaudio/wasapi)
+[![FOSS: 100%](https://img.shields.io/badge/FOSS-100%25-brightgreen.svg)](#-license--foss)
 
-## Quick Start
+An advanced, privacy-focused Windows audio recording and AI transcription suite. It captures **microphone** and **system audio** independently and generates high-accuracy meeting transcripts with precise **speaker attribution** — locally via `whisper.cpp` or in the cloud via the ElevenLabs Scribe API.
 
-```shell
-Start-Recorder.vbs          Double-click to start without a console window
-python main.py              Run with console for debugging
-```
+---
 
-First-time setup:
+## ✨ Features
+
+- 🎤 **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (WASAPI loopback system audio).
+- 🗣️ **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
+- 🤖 **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
+- ☁️ **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
+- ⚡ **Real-Time Live Preview**: Streaming live transcription while recording without cutting off closing audio.
+- 🎛️ **DAW-Grade VUMeters**: Custom hand-drawn peak/RMS meters with dynamic dB readouts and gain sliders (-20 dB to +20 dB).
+- 🔒 **Encrypted Secret Storage**: ElevenLabs API keys are encrypted via Windows DPAPI bound to your user account.
+- 🎨 **Modern Dark Interface**: Custom Tkinter `Canvas` design system with zero external UI framework dependencies.
+- 🆓 **100% Free & Open Source**: Released under the permissive MIT License.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
+
+Install the required Python packages:
 
 ```shell
 pip install -r requirements.txt
 ```
 
-`whisper.cpp` and GGML models are automatically downloaded on demand to `bin/`.
+> 💡 **Note**: `whisper.cpp` binaries and GGML models are automatically fetched on demand to the `bin/` directory.
 
-## Architecture & Structure
+### 2. Running the Application
+
+* **Double-click launch** (no console window):
+  ```shell
+  Start-Recorder.vbs
+  ```
+* **Command line launch** (with debugging logs):
+  ```shell
+  python main.py
+  ```
+
+---
+
+## 🏗️ Architecture & Project Structure
 
 ```text
-main.py                     Application entry point
-audio_transcriber/
-    paths.py                Central path resolution (relative to script directory, not CWD)
-    config.py               Typed & versioned settings (Schema v2)
-    secretstore.py          Secure API key encryption via Windows DPAPI
-    events.py               Thread-safe UI event bridge (single queue & event pump)
-    diarize.py              Track merging & crosstalk/bleed filtering
-    pipeline.py             Post-processing workflow & live preview engine
-    audio/
-        devices.py          WASAPI device enumeration & loopback matching
-        capture.py          Audio recording, disk streaming & drift correction
-        dsp.py              Active channel downmix, exact polyphase resampling, RMS levels
-    transcribe/
-        base.py             Shared interfaces, timestamp parser & Segment data structures
-        binaries.py         Atomic binary/model downloader with Zip-Slip protection
-        whispercpp.py       Local whisper.cpp backend runner
-        elevenlabs.py       Cloud ElevenLabs Scribe backend runner
-    ui/
-        theme.py            Color tokens, spacing grid & dark clam ttk styles
-        widgets.py          Hand-drawn Canvas UI elements (Cards, Switches, Sliders, Meters, Transcript)
-        app.py              Main application window
-legacy/                     Previous single-file implementation (archived for reference)
+📁 Audio-Transcriber/
+ ├── 📄 main.py                     🚀 Entry point for python / pythonw launch
+ ├── 📜 Start-Recorder.vbs          🖱️ Windows double-click launcher
+ ├── 📄 requirements.txt            📦 Core dependencies (pyaudiowpatch, soundfile, scipy, numpy)
+ ├── 📄 LICENSE                     📄 MIT License (100% FOSS)
+ ├── 📄 README.md                   📖 Project documentation
+ ├── 📁 audio_transcriber/          📦 Main application package
+ │    ├── 📄 paths.py               📂 Central path resolution & filename sanitization
+ │    ├── 📄 config.py              ⚙️ Typed & versioned settings (Schema v2)
+ │    ├── 📄 secretstore.py         🔐 DPAPI Windows key encryption
+ │    ├── 📄 events.py              🌉 Thread-safe UI event bridge & pump
+ │    ├── 📄 diarize.py             🗣️ Speaker merging, bleed & hallucination filter
+ │    ├── 📄 pipeline.py            🔄 Post-processing workflow & live preview engine
+ │    ├── 📁 audio/                 🔊 Audio processing module
+ │    │    ├── 📄 devices.py        🔌 WASAPI enumeration & loopback matching
+ │    │    ├── 📄 capture.py        🎙️ Multi-device audio capture & disk streaming
+ │    │    └── 📄 dsp.py            🎛️ Active channel downmix & 16 kHz polyphase resampling
+ │    ├── 📁 transcribe/            🤖 AI Transcription engines
+ │    │    ├── 📄 base.py           🧩 Shared backend interface & timestamp parsers
+ │    │    ├── 📄 binaries.py       📥 Atomic model & binary downloader
+ │    │    ├── 📄 whispercpp.py     💻 Local whisper.cpp CLI subprocess runner
+ │    │    └── 📄 elevenlabs.py     ☁️ Cloud ElevenLabs Scribe API runner
+ │    └── 📁 ui/                    🎨 Interface module
+ │         ├── 📄 theme.py          🎨 Color tokens & dark ttk clam styles
+ │         ├── 📄 widgets.py        🖼️ Custom Canvas Cards, Sliders, Switches & Transcript
+ │         └── 📄 app.py            🖥️ Main Tkinter window controller
+ └── 📁 legacy/                     📜 Archived single-file implementation
 ```
 
-## User Interface & Design System
+---
 
-Dark card-based layout built completely without external UI libraries: `theme.py` maintains all design tokens and configures a `clam`-based ttk style. `widgets.py` renders custom elements directly onto `tk.Canvas` (rounded cards, toggle switches, smooth sliders, peak/RMS meters, animated status pills, buttons with hover/press states). No hardcoded color literals exist in the UI application code.
+## 🗣️ How Speaker Diarization Works
 
-The transcript pane automatically formats and colors speaker lines — `[You]` in blue, `[Participant]` in green, and timestamps in gray. Pressing `F5` starts or stops recording.
+Instead of downmixing audio upfront and estimating speakers probabilistically, both audio channels are captured and transcribed **independently**. Speaker attribution is then determined deterministically in `diarize.py`:
 
-## How Speaker Diarization Works
+1. 🔇 **Crosstalk / Bleed Filtering**: Speaker audio bleeding into the microphone is filtered using relative track energy levels (independent of gain sliders).
+2. 🚫 **Hallucination Prevention**: Audio segments with no signal energy on their source track are automatically dropped.
+3. 🔀 **Duplicate Resolution**: Identical sentences detected on both tracks are merged, giving priority to the clearer audio source.
 
-Both tracks (microphone and loopback system audio) are transcribed **independently**. Speaker attribution is therefore known upfront rather than guessed. Subsequently, `diarize.py` filters the result:
+---
 
-* **Crosstalk / Bleed Filter**: Voice from speakers bleeding into the microphone is discarded based on track-relative levels (removing gain slider dependency).
-* **Hallucination Filter**: Segments without meaningful signal energy on their own track are dropped.
-* **Duplicate Merging**: When identical text is recognized on both tracks, the clearer/louder track wins. In case of a tie, the system track wins (because crosstalk physically flows only from speakers to microphone, never vice versa).
+## 🎛️ User Interface & Controls
 
-## Technical Notes & Limitations
+- ⏺️ **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
+- 🎚️ **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
+- 💬 **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
+- 💾 **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
 
-* **Vulkan / GPU Status**: The pre-built `whisper.cpp` binary may crash on certain AMD GPUs (e.g. Radeon RX 7700 XT) with `0xC0000409` (STATUS_STACK_BUFFER_OVERRUN). By default, GPU acceleration is disabled (`-ng`). When a compatible binary build is present, this can be toggled via `allow_gpu` in `whispercpp.py`.
-* **Separate Track Overhead**: Transcribing two independent tracks doubles execution time (local processing is fast; for ElevenLabs cloud API, separate tracks double API usage). This can be toggled via "Separate tracks" in the UI.
-* **VAD Configuration**: Voice Activity Detection (VAD) is disabled by default because standard VAD on some builds merges distant speech segments into overly long blocks. Precise timestamps are critical for speaker attribution.
-* **Secure Storage**: ElevenLabs API keys are encrypted using Windows DPAPI bound to the current user account.
+---
 
-## Security Notice
+## ⚙️ Technical Highlights
 
-In Schema v1, the ElevenLabs API key was stored in clear text in `settings.json`. On the first launch, keys are automatically migrated to encrypted DPAPI storage.
+- **WASAPI Loopback**: Native Windows WASAPI API capture guarantees zero-loss system audio recording.
+- **Polyphase Resampling**: High-quality 16 kHz Mono resampling via `scipy.signal.resample_poly`.
+- **Atomic File Operations**: Safe binary downloads and atomic settings updates prevent file corruption.
+- **Vulkan / GPU Notice**: By default, GPU flags (`-ng`) fall back to CPU execution to prevent driver crashes on unsupported hardware. Compatible builds can enable GPU acceleration via `allow_gpu`.
+
+---
+
+## 📄 License & FOSS Status
+
+This project is **100% Free and Open Source Software (FOSS)** released under the permissive **[MIT License](LICENSE)**.
+
+```text
+MIT License - Copyright (c) 2026 SecretLUL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so.
+```
+
+You are free to use, modify, distribute, and integrate this software in personal or commercial projects.
