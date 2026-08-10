@@ -12,6 +12,11 @@ bin/
 *.tmp
 .tmp/
 
+# Build & Release outputs
+dist/
+build/
+*.spec
+
 # Python
 __pycache__/
 *.py[cod]
