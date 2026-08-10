@@ -123,6 +123,7 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 ## ⚙️ Technical Highlights
 
 - **WASAPI / PulseAudio Loopback**: Native system audio capture guarantees zero-loss recording.
+- **Voice Activity Detection (VAD)**: Optional Silero VAD (`ggml-silero-vad.bin`) pre-filtering. When enabled, it strips silence before feeding audio to Whisper. It is disabled by default to preserve precise sentence timestamps essential for speaker diarization; `diarize.py` filters pause hallucinations using track-relative RMS energy instead.
 - **Polyphase Resampling**: High-quality 16 kHz Mono resampling via `scipy.signal.resample_poly`.
 - **Atomic File Operations**: Safe binary downloads and atomic settings updates prevent file corruption.
 - **Vulkan / GPU Notice**: By default, GPU flags (`-ng`) fall back to CPU execution to prevent driver crashes on unsupported hardware. Compatible builds can enable GPU acceleration via `allow_gpu`.
