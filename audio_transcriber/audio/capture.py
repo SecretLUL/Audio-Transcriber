@@ -203,7 +203,10 @@ class AudioEngine:
         return warnings
 
     def _open_stream(self, track):
-        import pyaudiowpatch as pyaudio
+        try:
+            import pyaudiowpatch as pyaudio
+        except ImportError:
+            import pyaudio
         return self._pa.open(
             format=pyaudio.paFloat32,
             channels=track.channels,

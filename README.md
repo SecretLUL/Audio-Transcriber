@@ -41,11 +41,11 @@ No Python installation or terminal setup required!
 
 | Operating System | Pre-built Executable | Running from Source | Audio Capture Backend |
 | :--- | :---: | :---: | :--- |
-| **Windows 10 / 11 (x64)** | ✅ Supported (`.exe`) | ✅ Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
-| **Linux (Ubuntu, Arch, etc.)** | ❌ Not in v1.0.0 | ⚠️ Experimental | Requires PulseAudio / PipeWire monitor abstraction |
-| **macOS** | ❌ Not supported | ⚠️ Experimental | Requires BlackHole / Soundflower audio loopback |
+| **Windows 10 / 11 (x64)** | ✅ Supported (`.exe` in `.zip`) | ✅ Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
+| **Linux (Ubuntu, Debian, Arch, etc.)** | ✅ Supported (`.tar.gz`) | ✅ Supported | PulseAudio / PipeWire Monitor (`pyaudio`) |
+| **macOS** | ⚠️ Experimental | ⚠️ Experimental | Requires BlackHole / Soundflower audio loopback |
 
-> 📌 **Note**: Standalone releases (`.exe`) and hardware-level secret storage (`secretstore.py`) rely on Windows WASAPI and DPAPI APIs. Native Linux (PulseAudio/PipeWire) support and multi-platform CI/CD builds are on the roadmap for future updates!
+> 🤖 **Automated CI/CD Pipeline**: GitHub Actions automatically compiles and packages standalone releases for **Windows** and **Linux** on every release tag (`v*`).
 
 ---
 
