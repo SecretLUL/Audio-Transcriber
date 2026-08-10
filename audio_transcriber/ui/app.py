@@ -242,8 +242,9 @@ class RecorderApp:
             wrap, "Target Folder",
             lambda p: ttk.Entry(p, style="Dark.TEntry", font=T.fonts["body"]),
             hint="Custom directory where transcripts (.txt) and audio (.wav) will be saved.",
-            icon_name="folder"
+            icon_name="globe"
         )
+
         self.out_dir_field.grid(row=0, column=0, sticky="ew")
         self.output_dir_entry = self.out_dir_field.widget
         self.output_dir_entry.insert(0, self.settings.output_dir or paths.OUT_DIR)
