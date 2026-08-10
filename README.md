@@ -1,17 +1,17 @@
-# Audio AI Recorder & Transcriber
+# 🎙️ Audio AI Recorder & Transcriber
 
 [![Release: v1.0.0](https://img.shields.io/github/v/release/SecretLUL/Audio-Transcriber?color=7289da&label=Release)](https://github.com/SecretLUL/Audio-Transcriber/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)](#platform-compatibility--downloads)
-[![FOSS: 100%](https://img.shields.io/badge/FOSS-100%25-brightgreen.svg)](#license--foss-status)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)](#-platform-compatibility--downloads)
+[![FOSS: 100%](https://img.shields.io/badge/FOSS-100%25-brightgreen.svg)](#-license--foss-status)
 
 An advanced, privacy-focused audio recording and AI transcription suite. It captures **microphone** and **system audio** independently and generates high-accuracy meeting transcripts with precise **speaker attribution** — locally via `whisper.cpp` or in the cloud via the ElevenLabs Scribe API.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Option A: Pre-built Standalone Release (Recommended)
+### Option A: Pre-built Standalone Release (Recommended 💻)
 
 No Python installation or terminal setup required!
 
@@ -24,7 +24,7 @@ No Python installation or terminal setup required!
 
 ---
 
-### Option B: Running from Source
+### Option B: Running from Source (For Developers 🛠️)
 
 1. Clone the repository and install the Python dependencies:
    ```shell
@@ -36,37 +36,37 @@ No Python installation or terminal setup required!
    - **Windows (no console)**: Double-click `Start-Recorder.vbs`
    - **Terminal / Cross-platform**: Run `python main.py`
 
-> **Note**: `whisper.cpp` binaries and GGML models are automatically fetched on demand to the `bin/` directory on first launch.
+> 💡 **Note**: `whisper.cpp` binaries and GGML models are automatically fetched on demand to the `bin/` directory on first launch.
 
 ---
 
-## Platform Compatibility & Downloads
+## 🐧 Platform Compatibility & Downloads
 
 | Operating System | Pre-built Executable | Running from Source | Audio Capture Backend |
 | :--- | :---: | :---: | :--- |
-| **Windows 10 / 11 (x64)** | Supported (`.exe` in `.zip`) | Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
-| **Linux (Ubuntu, Debian, Arch, etc.)** | Supported (`.tar.gz`) | Supported | PulseAudio / PipeWire Monitor (`pyaudio`) |
-| **macOS (Intel & Apple Silicon M1-M4)** | Supported (`.zip`) | Supported | CoreAudio + [BlackHole](https://github.com/ExistentialAudio/BlackHole) Loopback |
+| **Windows 10 / 11 (x64)** | ✅ Supported (`.exe` in `.zip`) | ✅ Supported | Native WASAPI Loopback (`pyaudiowpatch`) |
+| **Linux (Ubuntu, Debian, Arch, etc.)** | ✅ Supported (`.tar.gz`) | ✅ Supported | PulseAudio / PipeWire Monitor (`pyaudio`) |
+| **macOS (Intel & Apple Silicon M1-M4)** | ✅ Supported (`.zip`) | ✅ Supported | CoreAudio + [BlackHole](https://github.com/ExistentialAudio/BlackHole) Loopback |
 
-> **Automated CI/CD Pipeline**: GitHub Actions automatically compiles and packages standalone releases for **Windows**, **Linux**, and **macOS** on every release tag (`v*`).
-
----
-
-## Features
-
-- **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (system audio).
-- **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
-- **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
-- **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
-- **Real-Time Live Preview**: Streaming live transcription while recording without cutting off closing audio.
-- **DAW-Grade VUMeters**: Custom hand-drawn peak/RMS meters with dynamic dB readouts and gain sliders (-20 dB to +20 dB).
-- **Encrypted Secret Storage**: ElevenLabs API keys are encrypted via Windows DPAPI or secure user-scoped storage.
-- **Modern Dark Interface**: Custom Tkinter `Canvas` design system with zero external UI framework dependencies.
-- **100% Free & Open Source**: Released under the permissive MIT License.
+> 🤖 **Automated CI/CD Pipeline**: GitHub Actions automatically compiles and packages standalone releases for **Windows**, **Linux**, and **macOS** on every release tag (`v*`).
 
 ---
 
-## Architecture & Project Structure
+## ✨ Features
+
+- 🎤 **Dual-Track Capture**: Separate recording of your voice (microphone) and other participants (system audio).
+- 🗣️ **Smart Speaker Diarization**: Exact speaker tagging (`[You]` vs `[Participant]`) via track-relative level comparison.
+- 🤖 **Offline Local AI**: Integrated `whisper.cpp` engine with automatic GGML model downloads (Tiny to Large-v3).
+- ☁️ **Cloud API Acceleration**: Optional ElevenLabs Scribe v2 integration with token-level timestamp alignment.
+- ⚡ **Real-Time Live Preview**: Streaming live transcription while recording without cutting off closing audio.
+- 🎛️ **DAW-Grade VUMeters**: Custom hand-drawn peak/RMS meters with dynamic dB readouts and gain sliders (-20 dB to +20 dB).
+- 🔒 **Encrypted Secret Storage**: ElevenLabs API keys are encrypted via Windows DPAPI or secure user-scoped storage.
+- 🎨 **Modern Dark Interface**: Custom Tkinter `Canvas` design system with zero external UI framework dependencies.
+- 🆓 **100% Free & Open Source**: Released under the permissive MIT License.
+
+---
+
+## 🏗️ Architecture & Project Structure
 
 ```text
 Audio-Transcriber/
@@ -101,7 +101,7 @@ Audio-Transcriber/
 
 ---
 
-## How Speaker Diarization Works
+## 🗣️ How Speaker Diarization Works
 
 Instead of downmixing audio upfront and estimating speakers probabilistically, both audio channels are captured and transcribed **independently**. Speaker attribution is then determined deterministically in `diarize.py`:
 
@@ -111,16 +111,16 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 
 ---
 
-## User Interface & Controls
+## 🎛️ User Interface & Controls
 
-- **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
-- **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
-- **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
-- **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
+- ⏺️ **Record / Stop (`F5`)**: Start or stop recording at any time with global hotkey support.
+- 🎚️ **Gain Sliders**: Adjust audible mixdown levels independently from -20.0 dB to +20.0 dB.
+- 💬 **Transcript Pane**: Color-coded speaker text — `[You]` in **blue**, `[Participant]` in **green**, and timestamps in **gray**.
+- 💾 **Automatic Output**: Clean WAV audio and plain-text transcripts (`.txt`) are automatically saved to `output/`.
 
 ---
 
-## Technical Highlights
+## ⚙️ Technical Highlights
 
 - **WASAPI / PulseAudio Loopback**: Native system audio capture guarantees zero-loss recording.
 - **Polyphase Resampling**: High-quality 16 kHz Mono resampling via `scipy.signal.resample_poly`.
@@ -129,7 +129,7 @@ Instead of downmixing audio upfront and estimating speakers probabilistically, b
 
 ---
 
-## License & FOSS Status
+## 📄 License & FOSS Status
 
 This project is **100% Free and Open Source Software (FOSS)** released under the permissive **[MIT License](LICENSE)**.
 
