@@ -10,10 +10,23 @@ import traceback
 
 
 def main():
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            # Enable High-DPI awareness so Windows does not blur or shrink Tkinter on WQHD / 4K monitors
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        except Exception:
+            try:
+                import ctypes
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
+
     try:
         import tkinter as tk
         from audio_transcriber.ui.app import RecorderApp
     except ImportError as exc:
+
         _fatal(f"A required library is missing: {exc}\n\n"
                f"Install with:\n"
                f"    pip install -r requirements.txt")

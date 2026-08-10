@@ -32,10 +32,8 @@ class RecorderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Audio AI Recorder")
-        self.root.geometry("800x960")
-        # Below this height there would be no usable space left for the
-        # transcript - the cards above need about 750 px together.
-        self.root.minsize(740, 900)
+        self.root.geometry("920x980")
+        self.root.minsize(840, 900)
 
         T.apply(root)
 
@@ -114,7 +112,7 @@ class RecorderApp:
         left = tk.Frame(head, bg=T.BG)
         left.pack(side=tk.LEFT)
 
-        self._icon_refs["logo"] = icons.get_icon("app_logo", size=36)
+        self._icon_refs["logo"] = icons.get_icon("app_logo", size=42)
         tk.Label(left, image=self._icon_refs["logo"], bg=T.BG).pack(
             side=tk.LEFT, padx=(0, T.MD))
 
@@ -128,7 +126,7 @@ class RecorderApp:
                  f"ElevenLabs Scribe")
         self.subtitle.pack(anchor="w", pady=(2, 0))
 
-        self.status = W.StatusPill(head, bg=T.BG, width=240, height=32)
+        self.status = W.StatusPill(head, bg=T.BG, width=260, height=36)
         self.status.pack(side=tk.RIGHT, anchor="e")
 
     # ------------------------------------------------------------------
@@ -155,7 +153,7 @@ class RecorderApp:
         head.grid(row=row, column=0, columnspan=3, sticky="ew")
         head.columnconfigure(1, weight=1)
 
-        self._icon_refs[f"src_{row}"] = icons.get_icon(icon_name, size=24)
+        self._icon_refs[f"src_{row}"] = icons.get_icon(icon_name, size=26)
         tk.Label(head, image=self._icon_refs[f"src_{row}"], bg=T.CARD).grid(
             row=0, column=0, sticky="w", padx=(0, T.SM))
         tk.Label(head, text=label, bg=T.CARD, fg=T.TEXT_DIM,
@@ -167,8 +165,9 @@ class RecorderApp:
         combo.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(6, 6))
         combo.bind("<<ComboboxSelected>>", lambda _e: self.restart_monitoring())
 
-        meter = W.Meter(head, width=560, height=14)
+        meter = W.Meter(head, width=560, height=18)
         meter.grid(row=2, column=0, columnspan=3, sticky="ew")
+
 
         gain_row = tk.Frame(head, bg=T.CARD)
         gain_row.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(5, 0))

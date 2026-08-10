@@ -54,10 +54,10 @@ TIMESTAMP = "#64748b"
 # ----------------------------------------------------------------------
 # Spacing (4 point grid)
 # ----------------------------------------------------------------------
-XS, SM, MD, LG, XL, XXL = 4, 8, 12, 16, 24, 32
+XS, SM, MD, LG, XL, XXL = 6, 10, 14, 18, 26, 34
 
-RADIUS_CARD = 14
-RADIUS_CTRL = 8
+RADIUS_CARD = 16
+RADIUS_CTRL = 9
 RADIUS_PILL = 999
 
 _FAMILY = "Segoe UI"
@@ -76,21 +76,28 @@ def _pick_family(root, *candidates):
 
 def apply(root):
     """Set up fonts, ttk styles and global options."""
+    try:
+        dpi = root.winfo_fpixels('1i')
+        scaling = max(1.2, dpi / 72.0)
+        root.tk.call('tk', 'scaling', scaling)
+    except Exception:
+        pass
+
     family = _pick_family(root, "Segoe UI Variable Text", _FAMILY, "Helvetica")
     display = _pick_family(root, "Segoe UI Variable Display", _FAMILY, "Helvetica")
     mono = _pick_family(root, "Cascadia Mono", _MONO, "Courier")
 
     fonts.update({
-        "display": tkfont.Font(root=root, family=display, size=17, weight="bold"),
-        "title": tkfont.Font(root=root, family=family, size=11, weight="bold"),
-        "section": tkfont.Font(root=root, family=family, size=8, weight="bold"),
-        "body": tkfont.Font(root=root, family=family, size=10),
-        "body_bold": tkfont.Font(root=root, family=family, size=10, weight="bold"),
-        "small": tkfont.Font(root=root, family=family, size=9),
-        "tiny": tkfont.Font(root=root, family=family, size=8),
-        "mono": tkfont.Font(root=root, family=mono, size=10),
-        "mono_small": tkfont.Font(root=root, family=mono, size=9),
-        "button": tkfont.Font(root=root, family=family, size=10, weight="bold"),
+        "display": tkfont.Font(root=root, family=display, size=20, weight="bold"),
+        "title": tkfont.Font(root=root, family=family, size=13, weight="bold"),
+        "section": tkfont.Font(root=root, family=family, size=10, weight="bold"),
+        "body": tkfont.Font(root=root, family=family, size=11),
+        "body_bold": tkfont.Font(root=root, family=family, size=11, weight="bold"),
+        "small": tkfont.Font(root=root, family=family, size=10),
+        "tiny": tkfont.Font(root=root, family=family, size=9),
+        "mono": tkfont.Font(root=root, family=mono, size=11),
+        "mono_small": tkfont.Font(root=root, family=mono, size=10),
+        "button": tkfont.Font(root=root, family=family, size=11, weight="bold"),
     })
 
     root.configure(bg=BG)
@@ -110,17 +117,13 @@ def apply(root):
                     font=fonts["tiny"])
 
     # --- Combo box -----------------------------------------------------
-    # Important: clam paints the arrow area with 'bordercolor', not with
-    # 'background'. Leave the border tone there and you get a bright block on
-    # the right edge. Hence bordercolor = field colour, with the visible frame
-    # coming from lightcolor/darkcolor.
     for name in ("TCombobox", "Dark.TCombobox"):
         style.configure(name,
                         fieldbackground=FIELD, background=FIELD, foreground=TEXT,
                         arrowcolor=TEXT_DIM, bordercolor=FIELD,
                         lightcolor=BORDER, darkcolor=BORDER,
                         selectbackground=FIELD, selectforeground=TEXT,
-                        insertcolor=TEXT, padding=(10, 7), arrowsize=13)
+                        insertcolor=TEXT, padding=(12, 8), arrowsize=14)
         style.map(name,
                   background=[("readonly", FIELD), ("active", FIELD),
                               ("pressed", FIELD), ("disabled", BG_DEEP)],
@@ -144,7 +147,7 @@ def apply(root):
     style.configure("Dark.TEntry",
                     fieldbackground=FIELD, foreground=TEXT, insertcolor=ACCENT,
                     bordercolor=FIELD, lightcolor=BORDER, darkcolor=BORDER,
-                    padding=(10, 7), selectbackground=ACCENT_LO,
+                    padding=(12, 8), selectbackground=ACCENT_LO,
                     selectforeground="#ffffff")
     style.map("Dark.TEntry",
               fieldbackground=[("disabled", BG_DEEP)],
@@ -156,7 +159,7 @@ def apply(root):
     style.configure("Dark.Vertical.TScrollbar",
                     background=BORDER, troughcolor=CARD, bordercolor=CARD,
                     arrowcolor=CARD, darkcolor=BORDER, lightcolor=BORDER,
-                    arrowsize=0, width=10)
+                    arrowsize=0, width=12)
     style.map("Dark.Vertical.TScrollbar",
               background=[("active", BORDER_HI), ("pressed", ACCENT)])
 
@@ -167,8 +170,9 @@ def apply(root):
     # --- Notebook (Tabs) -----------------------------------------------
     style.configure("TNotebook", background=BG, borderwidth=0, tabmargins=[0, 0, 0, 8])
     style.configure("TNotebook.Tab", background=CARD, foreground=TEXT_DIM,
-                    padding=(18, 10), font=fonts["button"], borderwidth=0,
+                    padding=(22, 11), font=fonts["button"], borderwidth=0,
                     focuscolor="", lightcolor=BORDER, darkcolor=BORDER)
+
     style.map("TNotebook.Tab",
               background=[("selected", CARD_HI), ("active", BORDER)],
               foreground=[("selected", ACCENT), ("active", TEXT)],
