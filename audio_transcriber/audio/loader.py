@@ -29,15 +29,19 @@ def load_audio_file(file_path: str, target_rate: int = dsp.TARGET_RATE) -> np.nd
     # 1. Try reading directly with soundfile (fast, native)
     try:
         data, rate = sf.read(file_path, dtype="float32", always_2d=False)
+    except Exception:
+        # soundfile failed or format unsupported (e.g. m4a, aac, wma) -> try FFmpeg fallback
+        pass
+    else:
+        # A readable-but-empty file is a decoding result, not a decoding
+        # failure. Raising inside the try above sent it down the FFmpeg path
+        # and reported a misleading "FFmpeg not found" instead.
         if data.ndim > 1:
             data = data.mean(axis=1)
         resampled = dsp.resample(data, rate, target_rate)
         if len(resampled) == 0:
             raise TranscriptionError(f"Audio file contains no sample data: {file_path}")
         return resampled
-    except Exception:
-        # soundfile failed or format unsupported (e.g. m4a, aac, wma) -> try FFmpeg fallback
-        pass
 
     # 2. Fallback: FFmpeg conversion to temp WAV
     return _load_via_ffmpeg(file_path, target_rate)

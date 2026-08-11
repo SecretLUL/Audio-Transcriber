@@ -16,10 +16,10 @@ import threading
 import numpy as np
 import soundfile as sf
 
-from . import diarize
+from . import diarize, paths
 from .audio import capture, dsp
 from .events import Failed, Finished, Log, Progress, Status
-from .paths import OUT_DIR, TMP_DIR
+from .paths import TMP_DIR
 from .transcribe.base import TranscriptionError
 from .transcribe.elevenlabs import ElevenLabsBackend
 from .transcribe.whispercpp import WhisperCppBackend
@@ -161,9 +161,6 @@ class Finalizer:
             text = "[No spoken text was recognised.]"
 
         txt_path = os.path.join(out_dir, f"{base_name}.txt")
-        with open(txt_path, "w", encoding="utf-8") as handle:
-            handle.write(text + "\n")
-
         with open(txt_path, "w", encoding="utf-8") as handle:
             handle.write(text + "\n")
 

@@ -14,7 +14,13 @@ import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import pyaudiowpatch as pyaudio
+try:
+    # Windows: the WASAPI loopback fork. Everywhere else plain PyAudio - the
+    # app then has no loopback capture, but recording and file upload work.
+    # capture.py does the same dance when it opens a stream.
+    import pyaudiowpatch as pyaudio
+except ImportError:
+    import pyaudio
 
 from .. import config, paths, pipeline
 from ..audio import devices as devmod
@@ -298,10 +304,10 @@ class RecorderApp:
         W.Switch(options, "Keep raw tracks", self.keep_raw_var).grid(
             row=0, column=3, sticky="w", padx=(T.MD, 0))
 
-        self.save_btn = W.Button(options, text="Save settings",
-                                 kind="ghost", width=150, height=32,
-                                 command=self.save_settings)
-        self.save_btn.grid(row=0, column=4, sticky="e", padx=(T.MD, 0))
+        self.save_settings_btn = W.Button(options, text="Save settings",
+                                          kind="ghost", width=150, height=32,
+                                          command=self.save_settings)
+        self.save_settings_btn.grid(row=0, column=4, sticky="e", padx=(T.MD, 0))
         options.columnconfigure(4, weight=1)
 
 
@@ -352,9 +358,10 @@ class RecorderApp:
                                   width=80, height=28, command=lambda: self.transcript.clear())
         self.clear_btn.pack(side=tk.RIGHT)
 
-        self.save_btn = W.Button(toolbar, text="Save", icon_name="save", kind="quiet",
-                                 width=80, height=28, command=self._save_transcript)
-        self.save_btn.pack(side=tk.RIGHT, padx=(0, T.XS))
+        self.save_transcript_btn = W.Button(toolbar, text="Save", icon_name="save",
+                                            kind="quiet", width=80, height=28,
+                                            command=self._save_transcript)
+        self.save_transcript_btn.pack(side=tk.RIGHT, padx=(0, T.XS))
 
         self.copy_btn = W.Button(toolbar, text="Copy", icon_name="copy", kind="quiet",
                                  width=80, height=28, command=self._copy_transcript)

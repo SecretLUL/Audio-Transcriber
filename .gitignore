@@ -28,5 +28,3 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
-tests/
-run_tests.py

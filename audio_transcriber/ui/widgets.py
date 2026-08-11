@@ -321,6 +321,7 @@ class Slider(tk.Canvas):
         self._centered = centered      # fill from the centre instead of the left
         self._hover = False
         self._dragging = False
+        self._enabled = True
 
         self.bind("<Button-1>", self._on_click)
         self.bind("<B1-Motion>", self._on_drag)
@@ -361,17 +362,21 @@ class Slider(tk.Canvas):
         return self.from_ + max(0.0, min(1.0, share)) * (self.to - self.from_)
 
     def _on_click(self, event):
+        if not self._enabled:
+            return
         self._dragging = True
         self.set(self._x_to_value(event.x), notify=True)
 
     def _on_drag(self, event):
-        if self._dragging:
+        if self._dragging and self._enabled:
             self.set(self._x_to_value(event.x), notify=True)
 
     def _on_release(self, _event):
         self._dragging = False
 
     def _on_wheel(self, event):
+        if not self._enabled:
+            return
         step = (self.to - self.from_) / 80.0
         self.set(self._value + (step if event.delta > 0 else -step), notify=True)
 

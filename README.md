@@ -94,7 +94,7 @@ Audio-Transcriber/
  ├── main.py                     Entry point for python / pythonw launch
  ├── Start-Recorder.vbs          Windows double-click launcher
  ├── build_release.py            Automated PyInstaller standalone build & zip packaging
- ├── requirements.txt            Core dependencies (pyaudiowpatch, soundfile, scipy, numpy)
+ ├── requirements.txt            Core dependencies (pyaudiowpatch, soundfile, scipy, numpy, Pillow)
  ├── LICENSE                     MIT License (100% FOSS)
  ├── README.md                   Project documentation
  ├── audio_transcriber/          Main application package
@@ -180,13 +180,26 @@ python run_tests.py
 
 ## 📦 Automated Release Build
 
-To build a standalone executable and zip archive locally using PyInstaller:
+To build a standalone executable and release archive locally using PyInstaller:
 
 ```shell
 python build_release.py
 ```
 
-The output executable and `.zip` package will be saved in the `dist/` directory.
+The build runs on Windows, Linux and macOS and names the archive after the
+current platform and version, e.g. `AudioTranscriber-v1.2.0-windows-x64.zip`.
+
+The version is resolved in this order:
+
+1. An explicit argument — `python build_release.py v1.2.0`
+2. The `RELEASE_VERSION` environment variable (the CI sets this from the tag)
+3. The git tag pointing at `HEAD`
+4. `v0.0.0-dev` as a fallback
+
+Before archiving, the script verifies that every module the app imports at
+startup actually made it into the bundle and fails the build otherwise.
+
+The output executable and archive are saved in the `dist/` directory.
 
 ---
 
