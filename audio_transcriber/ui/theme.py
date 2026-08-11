@@ -9,7 +9,6 @@ Every colour and spacing value lives here - no colour literals are allowed
 anywhere else in the UI code.
 """
 
-import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import ttk
 

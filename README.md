@@ -34,11 +34,15 @@ An advanced, privacy-focused audio recording and AI transcription suite. It capt
 No Python installation or terminal setup required!
 
 1. Download the latest release package for your operating system from the **[Releases Page](https://github.com/SecretLUL/Audio-Transcriber/releases)**:
-   - **Windows**: `AudioTranscriber-v1.0.2-windows-x64.zip`
-   - **Linux**: `AudioTranscriber-v1.0.2-linux-x64.tar.gz`
-   - **macOS**: `AudioTranscriber-v1.0.2-macos-universal.zip`
+   - **Windows (x64)**: `AudioTranscriber-<version>-windows-x64.zip`
+   - **Linux (x64)**: `AudioTranscriber-<version>-linux-x64.tar.gz`
+   - **macOS (Apple Silicon)**: `AudioTranscriber-<version>-macos-arm64.zip`
 2. Extract the archive to any folder.
 3. Launch `AudioTranscriber.exe` (Windows), `./AudioTranscriber` (Linux), or `AudioTranscriber.app` (macOS).
+
+> 🍎 **Intel Macs**: the released macOS build is Apple Silicon only. On an Intel
+> Mac, run from source (Option B) or build locally with `python build_release.py`,
+> which produces a `macos-x64` archive.
 
 ---
 
@@ -94,7 +98,7 @@ Audio-Transcriber/
  ├── main.py                     Entry point for python / pythonw launch
  ├── Start-Recorder.vbs          Windows double-click launcher
  ├── build_release.py            Automated PyInstaller standalone build & zip packaging
- ├── requirements.txt            Core dependencies (pyaudiowpatch, soundfile, scipy, numpy)
+ ├── requirements.txt            Core dependencies (pyaudiowpatch, soundfile, scipy, numpy, Pillow)
  ├── LICENSE                     MIT License (100% FOSS)
  ├── README.md                   Project documentation
  ├── audio_transcriber/          Main application package
@@ -180,13 +184,26 @@ python run_tests.py
 
 ## 📦 Automated Release Build
 
-To build a standalone executable and zip archive locally using PyInstaller:
+To build a standalone executable and release archive locally using PyInstaller:
 
 ```shell
 python build_release.py
 ```
 
-The output executable and `.zip` package will be saved in the `dist/` directory.
+The build runs on Windows, Linux and macOS and names the archive after the
+current platform and version, e.g. `AudioTranscriber-v1.2.0-windows-x64.zip`.
+
+The version is resolved in this order:
+
+1. An explicit argument — `python build_release.py v1.2.0`
+2. The `RELEASE_VERSION` environment variable (the CI sets this from the tag)
+3. The git tag pointing at `HEAD`
+4. `v0.0.0-dev` as a fallback
+
+Before archiving, the script verifies that every module the app imports at
+startup actually made it into the bundle and fails the build otherwise.
+
+The output executable and archive are saved in the `dist/` directory.
 
 ---
 

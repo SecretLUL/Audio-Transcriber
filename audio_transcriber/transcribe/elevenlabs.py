@@ -82,6 +82,7 @@ class ElevenLabsBackend(Backend):
         self.diarize = diarize
         self.tag_audio_events = tag_audio_events
         self._cancelled = False
+        self._response = None       # live response, so cancel() can close it
 
     # ------------------------------------------------------------------
     def transcribe(self, wav_path, language="de", log=None, track="",
@@ -153,6 +154,9 @@ class ElevenLabsBackend(Backend):
 
         try:
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                self._response = response
+                if self._cancelled:
+                    raise TranscriptionError("Transcription was cancelled.")
                 raw = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:1500]
@@ -168,8 +172,11 @@ class ElevenLabsBackend(Backend):
             raise TranscriptionError(
                 f"Could not reach ElevenLabs: {exc.reason}") from exc
         except OSError as exc:
+            if self._cancelled:
+                raise TranscriptionError("Transcription was cancelled.") from exc
             raise TranscriptionError(f"Upload failed: {exc}") from exc
         finally:
+            self._response = None
             body.close()
 
         try:
@@ -220,7 +227,8 @@ class ElevenLabsBackend(Backend):
             buffer = []
             word_count = 0
             seg_start = None
-            speaker = ""
+            seg_end = 0.0        # must reset too, else the next segment
+            speaker = ""         # inherits this one's end time
 
         for token in words:
             kind = token.get("type", "word")
@@ -252,4 +260,17 @@ class ElevenLabsBackend(Backend):
         return segments
 
     def cancel(self):
+        """Abort a running request.
+
+        There is no clean interrupt for urlopen, so the socket is closed from
+        underneath the reader: the blocked read raises OSError, which _post
+        turns back into a cancellation. Without this the worker sat on the
+        900 s timeout after the window had already closed.
+        """
         self._cancelled = True
+        response = self._response
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass

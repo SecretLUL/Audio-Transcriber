@@ -4,7 +4,7 @@
     "mic_gain_db": -8.0,
     "loop_gain_db": 10.0,
     "model_index": 0,
-    "elevenlabs_api_key": "sk_d3f9a431e0c35f5958c2b19b3ffe0fcf5da09b594a2103eb",
+    "elevenlabs_api_key": "sk_REDACTED_EXAMPLE_KEY_DO_NOT_USE",
     "live_transcribe": true,
     "filename": "test.wav"
 }
