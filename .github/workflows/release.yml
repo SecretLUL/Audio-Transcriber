@@ -34,10 +34,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -58,10 +58,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -75,7 +75,7 @@ jobs:
         run: python build_release.py
 
       - name: Upload Windows Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-release-package
           path: dist/AudioTranscriber-*-windows-x64.zip
@@ -89,7 +89,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Linux system audio dependencies & Tkinter
         run: |
@@ -97,7 +97,7 @@ jobs:
           sudo apt-get install -y portaudio19-dev python3-tk libasound2-dev libjack-jackd2-dev
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -111,7 +111,7 @@ jobs:
         run: python build_release.py
 
       - name: Upload Linux Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-release-package
           path: dist/AudioTranscriber-*-linux-x64.tar.gz
@@ -125,13 +125,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install PortAudio via Homebrew
         run: brew install portaudio
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -145,7 +145,7 @@ jobs:
         run: python build_release.py
 
       - name: Upload macOS Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-release-package
           path: dist/AudioTranscriber-*-macos-*.zip
@@ -160,7 +160,7 @@ jobs:
 
     steps:
       - name: Download all release assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: "*-release-package"
           merge-multiple: true
@@ -170,7 +170,7 @@ jobs:
         run: ls -lh release-assets/
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*
           name: Audio AI Recorder & Transcriber ${{ env.RELEASE_VERSION }}
