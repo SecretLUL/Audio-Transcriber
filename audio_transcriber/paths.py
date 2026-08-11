@@ -35,9 +35,15 @@ def safe_output_name(user_input, default="my_meeting"):
     """Turn user input into a safe base name without any path component.
 
     Blocks path traversal ('..\\..\\windows\\x') and empty names.
+
+    Both separators are stripped on every platform. os.path.basename() follows
+    the host rules, so on Linux and macOS a backslash is an ordinary character
+    and a name written on Windows sanitised to something else entirely - the
+    same settings.json produced a different file name depending on where it
+    ran. The result is still safe either way, just not the same.
     """
     name = (user_input or "").strip()
-    name = os.path.basename(name)
+    name = name.replace("\\", "/").rsplit("/", 1)[-1]
     name = os.path.splitext(name)[0]
     # Strip characters Windows does not allow in file names
     for char in '<>:"/\\|?*':

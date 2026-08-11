@@ -120,7 +120,12 @@ class TestAppLifecycle(unittest.TestCase):
 
 
     def test_output_name_sanitising(self):
-        """Path traversal through the file name field must be impossible."""
+        """Path traversal through the file name field must be impossible.
+
+        The results are identical on every platform. os.path.basename() used to
+        decide this by host rules, so a backslash path sanitised one way on
+        Windows and another on Linux - caught by CI on the first Linux run.
+        """
         cases = {
             "..\\..\\windows\\system32\\evil": "evil",
             "my_meeting.wav": "my_meeting",
@@ -128,10 +133,33 @@ class TestAppLifecycle(unittest.TestCase):
             "": "my_meeting",
             "C:/temp/report.wav": "report",
             'in<va>lid:"|?*': "in_va_lid_____",
+            # POSIX separators must be blocked on Windows just as well
+            "../../etc/passwd": "passwd",
+            "/etc/shadow": "shadow",
+            "..\\../mix/ed\\name.wav": "name",
         }
         for raw, expected in cases.items():
             with self.subTest(raw=raw):
                 self.assertEqual(self.paths.safe_output_name(raw), expected)
+
+    def test_output_name_never_escapes_its_directory(self):
+        """The property behind the table above, stated directly."""
+        hostile = [
+            "../" * 8 + "etc/passwd",
+            "..\\" * 8 + "windows\\system32\\cmd.exe",
+            "/absolute/path", "C:\\Windows\\System32", "...", "..", ".",
+            "con.txt", "  ..  ", "a/b\\c/d",
+        ]
+        for raw in hostile:
+            with self.subTest(raw=raw):
+                name = self.paths.safe_output_name(raw)
+                self.assertNotIn("/", name)
+                self.assertNotIn("\\", name)
+                self.assertNotIn("..", name)
+                self.assertTrue(name)
+                # Must stay inside the directory it is joined onto
+                joined = os.path.normpath(os.path.join("/base", name))
+                self.assertTrue(joined.replace("\\", "/").startswith("/base/"))
 
 
 if __name__ == "__main__":
