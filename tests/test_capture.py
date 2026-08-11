@@ -3,6 +3,8 @@
 import os
 import shutil
 import tempfile
+import threading
+import time
 import unittest
 
 import numpy as np
@@ -115,6 +117,80 @@ class TestTrackLoading(unittest.TestCase):
     def test_duration_property(self):
         result = capture.TrackResult(path="x", rate=16000, frames=32000)
         self.assertAlmostEqual(result.duration_s, 2.0)
+
+
+class TestConfigureIsAtomic(unittest.TestCase):
+    """A reconfiguration must not be observable half-done.
+
+    configure() closes the old streams and only then opens the new ones. It
+    briefly holds no active track, and start_recording() reads exactly that
+    state - so hitting Start right after a device change reported "Neither
+    audio source is active" for a perfectly healthy device.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.engine = capture.AudioEngine(pa=None, tmp_dir=self.dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def test_is_configuring_reports_the_window(self):
+        self.assertFalse(self.engine.is_configuring)
+
+        seen = []
+        barrier = threading.Event()
+        released = threading.Event()
+
+        def slow_configure(_mic, _sys):
+            barrier.set()
+            released.wait(timeout=5.0)
+            return []
+
+        # Stand in for the real device work; only the locking is under test.
+        self.engine._configure = slow_configure
+
+        worker = threading.Thread(
+            target=lambda: self.engine.configure(None, None), daemon=True)
+        worker.start()
+
+        self.assertTrue(barrier.wait(timeout=5.0))
+        seen.append(self.engine.is_configuring)
+        released.set()
+        worker.join(timeout=5.0)
+
+        self.assertEqual(seen, [True], "is_configuring must be True mid-flight")
+        self.assertFalse(self.engine.is_configuring)
+
+    def test_two_reconfigurations_do_not_interleave(self):
+        """Without the lock the calls interleave as A-enter, B-enter, ..."""
+        events = []
+        lock = threading.Lock()
+
+        def tracked_configure(_mic, name):
+            with lock:
+                events.append(f"enter-{name}")
+            time.sleep(0.05)
+            with lock:
+                events.append(f"leave-{name}")
+            return []
+
+        self.engine._configure = tracked_configure
+
+        threads = [threading.Thread(target=self.engine.configure,
+                                    args=(None, name), daemon=True)
+                   for name in ("A", "B")]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5.0)
+
+        self.assertEqual(len(events), 4)
+        # Every enter must be followed by its own leave.
+        for index in range(0, 4, 2):
+            self.assertTrue(events[index].startswith("enter-"), events)
+            self.assertEqual(events[index + 1],
+                             events[index].replace("enter-", "leave-"), events)
 
 
 if __name__ == "__main__":

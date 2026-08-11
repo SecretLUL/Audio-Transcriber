@@ -33,6 +33,11 @@ from . import widgets as W
 
 METER_INTERVAL_MS = 40
 
+# How long Start waits for an in-flight device reconfiguration before giving up
+# and letting the engine report whatever is actually wrong. configure() joins
+# its reader threads with a 2 s timeout each, so this leaves room for both.
+DEVICE_READY_TIMEOUT_S = 6.0
+
 
 class RecorderApp:
     def __init__(self, root):
@@ -52,6 +57,8 @@ class RecorderApp:
         self.live_preview = None
         self.recording_base_name = None
         self.recording_started_at = None
+        self._monitor_thread = None
+        self._start_deadline = 0.0
         self._shutting_down = False
         self._meter_after_id = None
         self._icon_refs = {}
@@ -469,7 +476,10 @@ class RecorderApp:
             for warning in self.engine.configure(mic, loopback):
                 self.bridge.post(Log(f"⚠ {warning}\n"))
 
-        threading.Thread(target=worker, name="restart-monitor", daemon=True).start()
+        thread = threading.Thread(target=worker, name="restart-monitor",
+                                  daemon=True)
+        self._monitor_thread = thread
+        thread.start()
 
     # ==================================================================
     # Recording
@@ -487,6 +497,38 @@ class RecorderApp:
                                    "Please select a microphone and a playback device.")
             return
 
+        # Disable straight away so F5 or a second click cannot start twice
+        # while we are still waiting for the devices.
+        self.start_btn.config(state="disabled")
+        self._start_deadline = time.monotonic() + DEVICE_READY_TIMEOUT_S
+        self._start_when_devices_ready()
+
+    def _start_when_devices_ready(self):
+        """Begin recording once no device reconfiguration is in flight.
+
+        engine.configure() runs off the GUI thread, and between closing the old
+        streams and assigning the new ones the engine has no active track.
+        Hitting Start in that window failed with "Neither audio source is
+        active" immediately after a perfectly valid device change. We poll
+        instead of joining so the interface stays responsive.
+
+        On timeout we fall through deliberately: start_recording then reports
+        the engine's real error rather than hiding it behind a spinner.
+        """
+        if self._shutting_down:
+            return
+
+        thread = self._monitor_thread
+        busy = ((thread is not None and thread.is_alive())
+                or self.engine.is_configuring)
+        if busy and time.monotonic() < self._start_deadline:
+            self.status.set("preparing devices…", T.WARN)
+            self.root.after(80, self._start_when_devices_ready)
+            return
+
+        self._begin_recording()
+
+    def _begin_recording(self):
         self._sync_settings_from_ui()
         base_name = paths.safe_output_name(self.filename_entry.get())
         self.filename_entry.delete(0, tk.END)
@@ -495,6 +537,8 @@ class RecorderApp:
         try:
             self.engine.start_recording(base_name)
         except RuntimeError as exc:
+            self.start_btn.config(state="normal")
+            self.status.set("ready", T.TEXT_MUTE)
             messagebox.showerror("Cannot record", str(exc))
             return
 

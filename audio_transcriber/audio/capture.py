@@ -123,7 +123,21 @@ class AudioEngine:
         self._tracks = {}
         self._recording = False
         self._gen_lock = threading.Lock()
+        # Serialises whole reconfigurations. _gen_lock alone is not enough:
+        # configure() releases it between stop_streams() and opening the new
+        # streams, so two rapid device changes could interleave as
+        # A.stop / B.stop / A.assign / B.assign and leak A's streams.
+        self._configure_lock = threading.Lock()
         self.last_error = None
+
+    @property
+    def is_configuring(self):
+        """True while a reconfiguration is in flight.
+
+        During that window the engine may legitimately have no active track,
+        which is not the same thing as having no working device.
+        """
+        return self._configure_lock.locked()
 
     # ------------------------------------------------------------------
     # Levels for the meters (raw, before gain - see H2)
@@ -153,6 +167,10 @@ class AudioEngine:
 
         Must run off the GUI thread (join blocks for up to 2 s).
         """
+        with self._configure_lock:
+            return self._configure(mic_device, sys_device)
+
+    def _configure(self, mic_device, sys_device):
         warnings = []
         self.stop_streams()
 
