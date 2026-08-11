@@ -90,8 +90,12 @@ def platform_tag():
     if sys.platform == "win32":
         return "zip", "windows-x64"
     if sys.platform == "darwin":
+        # Not "universal": PyInstaller builds for the host architecture only
+        # unless target_arch=universal2 is set explicitly, so an arm64 runner
+        # produces an arm64-only binary. Naming it universal promised Intel
+        # users a build that would not run for them.
         machine = platform.machine().lower()
-        return "zip", "macos-universal" if machine in ("arm64", "universal2") else "macos-x64"
+        return "zip", "macos-arm64" if machine in ("arm64", "aarch64") else "macos-x64"
     return "tar.gz", "linux-x64"
 
 

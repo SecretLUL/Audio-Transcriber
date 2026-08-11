@@ -180,12 +180,14 @@ jobs:
             ### 💻 Downloads
             - **Windows (x64)**: `AudioTranscriber-${{ env.RELEASE_VERSION }}-windows-x64.zip`
             - **Linux (x64)**: `AudioTranscriber-${{ env.RELEASE_VERSION }}-linux-x64.tar.gz`
-            - **macOS (Intel & Apple Silicon)**: `AudioTranscriber-${{ env.RELEASE_VERSION }}-macos-universal.zip`
+            - **macOS (Apple Silicon)**: `AudioTranscriber-${{ env.RELEASE_VERSION }}-macos-arm64.zip`
 
             ### 📖 Quick Start
             1. Download the appropriate package for your operating system.
             2. Extract the archive to any directory.
             3. Run `AudioTranscriber.exe` (Windows), `./AudioTranscriber` (Linux), or open `AudioTranscriber.app` (macOS).
+
+            > 🍎 **Intel Macs**: this build is Apple Silicon only. Run from source or build locally with `python build_release.py` to get a `macos-x64` archive.
 
             > 🎧 **macOS Note**: System audio recording on macOS requires a virtual loopback device like [BlackHole](https://github.com/ExistentialAudio/BlackHole) (Free & Open Source).
         env:

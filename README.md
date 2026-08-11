@@ -34,11 +34,15 @@ An advanced, privacy-focused audio recording and AI transcription suite. It capt
 No Python installation or terminal setup required!
 
 1. Download the latest release package for your operating system from the **[Releases Page](https://github.com/SecretLUL/Audio-Transcriber/releases)**:
-   - **Windows**: `AudioTranscriber-v1.0.2-windows-x64.zip`
-   - **Linux**: `AudioTranscriber-v1.0.2-linux-x64.tar.gz`
-   - **macOS**: `AudioTranscriber-v1.0.2-macos-universal.zip`
+   - **Windows (x64)**: `AudioTranscriber-<version>-windows-x64.zip`
+   - **Linux (x64)**: `AudioTranscriber-<version>-linux-x64.tar.gz`
+   - **macOS (Apple Silicon)**: `AudioTranscriber-<version>-macos-arm64.zip`
 2. Extract the archive to any folder.
 3. Launch `AudioTranscriber.exe` (Windows), `./AudioTranscriber` (Linux), or `AudioTranscriber.app` (macOS).
+
+> 🍎 **Intel Macs**: the released macOS build is Apple Silicon only. On an Intel
+> Mac, run from source (Option B) or build locally with `python build_release.py`,
+> which produces a `macos-x64` archive.
 
 ---
 
