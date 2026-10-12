@@ -441,8 +441,9 @@ class TestFinalizerWithLiveResults(unittest.TestCase):
                             frames=int(seconds * dsp.TARGET_RATE),
                             start_offset_s=offset, device_name="mic"))
 
-    def _run(self, live):
-        finalizer = pipeline.Finalizer(self.bridge, Settings(output_dir=self.out),
+    def _run(self, live, **settings):
+        finalizer = pipeline.Finalizer(self.bridge,
+                                       Settings(output_dir=self.out, **settings),
                                        backend_factory=lambda s: self.backend,
                                        live=live)
         thread = finalizer.run_async(self._recording(), "meeting")
@@ -507,6 +508,22 @@ class TestFinalizerWithLiveResults(unittest.TestCase):
         self.backend = StraddlingBackend()
         finished = self._run(self._live())
         self.assertIn("goodbye then", finished.text)
+
+    def test_stepfun_gets_the_tail_without_a_run_up(self):
+        """It cuts its own passages and is no whisper started cold: the tail
+        begins in the pause the last live chunk ended at, so no sentence is
+        sent - or printed - twice."""
+        self.backend = FakeBackend(text="tail")       # answers at second one
+        finished = self._run(self._live([Segment(start=1.0, end=2.0,
+                                                 text="said live", track="mic")]),
+                             model="stepfun")
+        self.assertEqual(len(self.backend.calls), 1)
+        self.assertAlmostEqual(self.backend.calls[0].duration,
+                               self.SECONDS - self.COVERED, delta=0.05)
+        self.assertIn("said live", finished.text)
+        # Second one of the tail is second 51 of the recording - and kept.
+        self.assertIn("[00:51]", finished.text)
+        self.assertIn("tail 1", finished.text)
 
     def test_without_live_results_the_whole_track_runs(self):
         finished = self._run(None)

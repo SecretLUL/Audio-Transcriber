@@ -24,7 +24,7 @@ from dataclasses import replace
 import numpy as np
 import soundfile as sf
 
-from . import diarize, paths
+from . import config, diarize, paths
 from .audio import capture, dsp
 from .events import (Failed, Finished, Log, ModelFetch, ModelFetchEnded,
                      Progress, Status)
@@ -32,6 +32,7 @@ from .paths import TMP_DIR
 from .transcribe import binaries
 from .transcribe.base import TranscriptionError, format_timestamp
 from .transcribe.elevenlabs import ElevenLabsBackend
+from .transcribe.stepfun import StepFunBackend
 from .transcribe.whispercpp import WhisperCppBackend
 
 # --- Live transcription ------------------------------------------------
@@ -71,8 +72,16 @@ PREVIEW_HEADER = ("⚡ Live preview of the last 30 seconds — the final "
 
 
 def build_backend(settings, greedy=False, live=False):
-    """Create the backend matching the current selection."""
-    if settings.uses_cloud() and not live:
+    """Create the backend matching the current selection.
+
+    `live` asks for the read-along preview, which is local whatever engine
+    makes the transcript.
+    """
+    engine = settings.cloud_engine()
+    if engine == config.STEPFUN_MODEL and not live:
+        return StepFunBackend(api_key=settings.stepfun_api_key,
+                              model_id=settings.stepfun_model_id)
+    if engine == config.ELEVENLABS_MODEL and not live:
         return ElevenLabsBackend(api_key=settings.api_key,
                                  model_id=settings.elevenlabs_model_id)
     model = settings.live_model_name() if live else settings.model_name()
@@ -88,13 +97,9 @@ def build_backend(settings, greedy=False, live=False):
 
 
 def live_transcription_possible(settings):
-    """Whether the recording can be transcribed while it runs.
-
-    The cloud backend cannot: every chunk would be a separate paid request,
-    and the final transcript has to come from one and the same recogniser -
-    mixing whisper chunks with an ElevenLabs tail would show in the text.
-    """
-    return not settings.uses_cloud()
+    """Whether the recording can be transcribed while it runs: with a local
+    model and with StepFun, not with ElevenLabs (Settings.can_transcribe_live)."""
+    return settings.can_transcribe_live()
 
 
 class _Worker:
@@ -255,7 +260,13 @@ class Finalizer(_Worker):
             # afterwards - whisper started cold on a few seconds of audio
             # hallucinates instead of recognising.
             begin = 0.0
-            if tail_start[kind]:
+            if tail_start[kind] and settings.uses_cloud():
+                # StepFun - the cloud engine that transcribes live - cuts the
+                # audio into passages of its own and needs no run-up. Without
+                # one the tail begins in the very pause the last live chunk
+                # was cut at, and no sentence is sent twice.
+                begin = tail_start[kind]
+            elif tail_start[kind]:
                 begin = max(0.0, min(tail_start[kind] - LIVE_TAIL_CONTEXT_S,
                                      len(audio) / float(dsp.TARGET_RATE)
                                      - LIVE_TAIL_WINDOW_S))
@@ -655,7 +666,7 @@ class LiveTranscriber:
             return
 
         if backlog > self.max_pending_s:
-            self._drop(f"{self.settings.model_name()} is slower than real time - "
+            self._drop(f"{self.settings.engine_name()} is slower than real time - "
                        f"live transcription stops here, the rest is "
                        f"transcribed after you press stop.")
             return
@@ -880,8 +891,8 @@ class FileFinalizer(_Worker):
 class LivePreview:
     """Continuously transcribes only the most recent time window.
 
-    The read-along mode for cases where LiveTranscriber cannot run: with the
-    cloud backend, or when live transcription is switched off. Nothing of this
+    The read-along mode for cases where LiveTranscriber cannot run: with
+    ElevenLabs, or when live transcription is switched off. Nothing of this
     reaches the saved transcript - it is a display, deliberately fed by a small
     model, and the same audio is recognised properly by the closing pass.
 

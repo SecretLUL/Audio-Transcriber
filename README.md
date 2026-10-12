@@ -8,17 +8,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
-Sotto records your microphone and the system audio as two separate tracks and turns a meeting into a transcript that knows who said what. Transcription runs locally with [whisper.cpp](https://github.com/ggml-org/whisper.cpp), or in the cloud with ElevenLabs Scribe if you choose it. The name comes from *sotto voce*, in a low voice: with the local engine, nothing that is said leaves your machine.
+Sotto records your microphone and the system audio as two separate tracks and turns a meeting into a transcript that knows who said what. Transcription runs locally with [whisper.cpp](https://github.com/ggml-org/whisper.cpp), or in the cloud with ElevenLabs Scribe or StepFun StepAudio 3 ASR if you choose one of them. The name comes from *sotto voce*, in a low voice: with the local engine, nothing that is said leaves your machine.
 
 ## Features
 
 - **Exact speakers**: your voice and everyone else's are recorded on separate tracks, so every line is marked `[You]` or `[Participant]` without guessing.
 - **Local and private**: whisper.cpp runs on your machine. Models from tiny (75 MB) to large-v3 (3.1 GB) are downloaded on first use and checked against their published SHA-256.
-- **Live transcription**: with a local model the recording is transcribed while it runs, so Stop only has to catch up with the last seconds.
+- **Live transcription**: with a local model or StepFun the recording is transcribed while it runs, so Stop only has to catch up with the last seconds.
 - **File upload**: transcribes existing recordings. WAV, MP3, FLAC and OGG are read directly; M4A, AAC, WMA, MP4, WebM and Opus need FFmpeg on the `PATH`.
 - **Nothing gets lost**: it warns before a recording is overwritten, offers to process recordings that were interrupted, and checks the engine, the output folder and the free disk space before it starts.
 - **Updates itself**: at start it asks GitHub for a newer release and shows a banner. "Update now" downloads it in the background, checks it against the release's `SHA256SUMS.txt`, and installs it on restart or when you close Sotto. Models, recordings and settings stay where they are.
-- **Optional**: ElevenLabs Scribe as a cloud engine, and a GPU switch that falls back to the CPU if the GPU run fails. `F5` starts and stops a recording.
+- **Optional**: ElevenLabs Scribe and StepFun StepAudio 3 ASR as cloud engines (see below), and a GPU switch that falls back to the CPU if the GPU run fails. `F5` starts and stops a recording.
 
 ## Download
 
@@ -40,6 +40,13 @@ python main.py
 
 `Start-Recorder.vbs` starts it without a console window.
 
+## Cloud engines
+
+Both are optional; the local engine needs no account. Their keys go on the Settings tab, where they are stored encrypted with the Windows DPAPI, or into an environment variable.
+
+- **ElevenLabs Scribe** uploads each track once the recording is over. Key: `ELEVENLABS_API_KEY`.
+- **StepFun StepAudio 3 ASR** (`stepaudio-3-asr-max`, key from [platform.stepfun.ai](https://platform.stepfun.ai)): Sotto cuts each track at its pauses and sends the passages of speech, three at a time, so it also transcribes live while you record. Key: `STEPFUN_API_KEY`. StepFun documents Chinese, English, Japanese, Korean, French and Spanish and detects no language by itself; with any other language setting Sotto asks before it starts.
+
 ## How speakers are told apart
 
 The two tracks are transcribed separately instead of being mixed and guessed apart afterwards. `diarize.py` then decides every line:
@@ -55,7 +62,7 @@ python run_tests.py               # test suite
 python build_release.py v1.2.0    # standalone build and archive in dist/
 ```
 
-The code lives in `audio_transcriber/`: `audio/` captures and loads audio, `transcribe/` runs whisper.cpp and ElevenLabs, `diarize.py` merges the tracks and `ui/` is the Tkinter interface.
+The code lives in `audio_transcriber/`: `audio/` captures and loads audio, `transcribe/` runs whisper.cpp, ElevenLabs and StepFun, `diarize.py` merges the tracks and `ui/` is the Tkinter interface.
 
 To release, run the [Release workflow](https://github.com/SecretLUL/Sotto/actions/workflows/release.yml) from `main` and pick `patch`, `minor` or `major`. It counts on from the newest tag, builds the Windows package, then tags and publishes it with checksums. The rehearsal option builds without publishing.
 

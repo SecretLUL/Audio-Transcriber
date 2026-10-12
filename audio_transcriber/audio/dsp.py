@@ -235,6 +235,16 @@ def reference_level(x, rate=TARGET_RATE, percentile=95.0):
     levels = frame_rms(x, max(1, int(rate * 0.1)))
     if levels.size == 0:
         return rms(x)
+    return reference_from_levels(levels, percentile)
+
+
+def reference_from_levels(levels, percentile=95.0):
+    """reference_level() from 100 ms frame levels that are already measured.
+
+    For a caller that reads a long track block by block and never holds it
+    whole (transcribe/stepfun.py).
+    """
+    levels = np.asarray(levels, dtype=np.float32)
     levels = levels[levels > SILENCE_FLOOR]
     if levels.size == 0:
         return 0.0

@@ -12,10 +12,20 @@ import ctypes
 import os
 from ctypes import wintypes
 
-# Extra entropy: besides the Windows account, an attacker also needs this
-# application-specific value to decrypt the blob. It predates the name Sotto and
-# must stay as it is: stored keys can only be decrypted with the same value.
-_ENTROPY = b"AudioTranscriber/v2/elevenlabs"
+# Extra entropy per service: besides the Windows account, an attacker also
+# needs this application-specific value to decrypt the blob. The ElevenLabs
+# value predates the name Sotto and must stay as it is: stored keys can only be
+# decrypted with the same value.
+_ENTROPY = {
+    "elevenlabs": b"AudioTranscriber/v2/elevenlabs",
+    "stepfun": b"Sotto/v1/stepfun",
+}
+
+# Where each key may come from instead (from_environment).
+_ENVIRONMENT = {
+    "elevenlabs": "ELEVENLABS_API_KEY",
+    "stepfun": "STEPFUN_API_KEY",
+}
 
 
 class _Blob(ctypes.Structure):
@@ -42,7 +52,7 @@ def _from_blob(blob):
             ctypes.windll.kernel32.LocalFree(blob.pbData)
 
 
-def encrypt(plaintext):
+def encrypt(plaintext, service="elevenlabs"):
     """Encrypt a string and return it base64 encoded.
 
     Raises:
@@ -52,7 +62,7 @@ def encrypt(plaintext):
         return ""
 
     data_in, _keep1 = _to_blob(plaintext.encode("utf-8"))
-    entropy, _keep2 = _to_blob(_ENTROPY)
+    entropy, _keep2 = _to_blob(_ENTROPY[service])
     data_out = _Blob()
 
     ok = ctypes.windll.crypt32.CryptProtectData(
@@ -65,9 +75,9 @@ def encrypt(plaintext):
     return base64.b64encode(_from_blob(data_out)).decode("ascii")
 
 
-def decrypt(token):
+def decrypt(token, service="elevenlabs"):
     """Decrypt a base64 token. Returns "" when that is not possible
-    (different user account, corrupted value)."""
+    (different user account, corrupted value, another service's key)."""
     if not token:
         return ""
 
@@ -77,7 +87,7 @@ def decrypt(token):
         return ""
 
     data_in, _keep1 = _to_blob(raw)
-    entropy, _keep2 = _to_blob(_ENTROPY)
+    entropy, _keep2 = _to_blob(_ENTROPY[service])
     data_out = _Blob()
 
     ok = ctypes.windll.crypt32.CryptUnprotectData(
@@ -92,6 +102,11 @@ def decrypt(token):
         return ""
 
 
-def from_environment():
+def from_environment(service="elevenlabs"):
     """Fallback when DPAPI fails or no key has been stored yet."""
-    return os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    return os.environ.get(_ENVIRONMENT[service], "").strip()
+
+
+def environment_variable(service="elevenlabs"):
+    """The name of the variable from_environment() reads, for messages."""
+    return _ENVIRONMENT[service]

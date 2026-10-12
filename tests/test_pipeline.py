@@ -64,6 +64,43 @@ class FakeBackend(Backend):
         pass
 
 
+class TestBuildBackend(unittest.TestCase):
+    def test_stepfun_gets_its_own_key_and_model(self):
+        from audio_transcriber.transcribe.stepfun import StepFunBackend
+        settings = config.Settings(model=config.STEPFUN_MODEL,
+                                   stepfun_model_id="stepaudio-2.5-asr")
+        settings.api_key, settings.stepfun_api_key = "eleven-key", " step-key "
+        backend = pipeline.build_backend(settings)
+        self.assertIsInstance(backend, StepFunBackend)
+        self.assertEqual((backend.api_key, backend.model_id),
+                         ("step-key", "stepaudio-2.5-asr"))
+
+    def test_elevenlabs_gets_its_own_too(self):
+        from audio_transcriber.transcribe.elevenlabs import ElevenLabsBackend
+        settings = config.Settings(model=config.ELEVENLABS_MODEL)
+        settings.api_key, settings.stepfun_api_key = "eleven-key", "step-key"
+        backend = pipeline.build_backend(settings)
+        self.assertIsInstance(backend, ElevenLabsBackend)
+        self.assertEqual(backend.api_key, "eleven-key")
+
+    def test_the_read_along_preview_stays_local_for_both(self):
+        from audio_transcriber.transcribe.whispercpp import WhisperCppBackend
+        for engine in config.CLOUD_MODELS:
+            with self.subTest(engine=engine):
+                backend = pipeline.build_backend(config.Settings(model=engine),
+                                                 greedy=True, live=True)
+                self.assertIsInstance(backend, WhisperCppBackend)
+                self.assertEqual(backend.model_name, "small")
+
+    def test_stepfun_transcribes_live_and_elevenlabs_does_not(self):
+        self.assertTrue(pipeline.live_transcription_possible(
+            config.Settings(model=config.STEPFUN_MODEL)))
+        self.assertFalse(pipeline.live_transcription_possible(
+            config.Settings(model=config.ELEVENLABS_MODEL)))
+        self.assertTrue(pipeline.live_transcription_possible(
+            config.Settings(model="small")))
+
+
 class TestFinalizer(unittest.TestCase):
     def setUp(self):
         FakeBackend.calls = []
@@ -168,7 +205,7 @@ class TestFinalizer(unittest.TestCase):
     def test_cloud_backend_is_reached_when_selected(self):
         """Regression K1: with the live preview enabled the cloud path was
         unreachable in the previous version."""
-        self.settings.model = config.CLOUD_MODEL      # ElevenLabs
+        self.settings.model = config.ELEVENLABS_MODEL      # ElevenLabs
         self.settings.live_transcribe = True
         used = []
 

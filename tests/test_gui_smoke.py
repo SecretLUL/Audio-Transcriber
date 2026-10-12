@@ -417,8 +417,9 @@ class TestControlStates(unittest.TestCase):
     def _change_the_settings_in_the_window(self):
         """What moving to the Settings tab and pressing 'Save settings' does
         to the live object (without writing the file)."""
+        from audio_transcriber import config
         self.app.lang_combo.current(7)                    # Turkish
-        self.app.model_combo.current(6)                   # large-v3
+        self.app.model_combo.current(config.model_index("large-v3"))
         self.app.api_entry.insert(0, "another-key")
         self.app._sync_settings_from_ui()
 
@@ -1340,7 +1341,7 @@ class TestModelPanel(unittest.TestCase):
 
     def test_the_cloud_has_no_model_to_show(self):
         from audio_transcriber import config
-        self._choose(config.CLOUD_MODEL)
+        self._choose(config.ELEVENLABS_MODEL)
         self.assertFalse(self._shown(self.app.model_panel))
         self._choose("tiny")
         self.assertTrue(self._shown(self.app.model_panel))
@@ -1407,6 +1408,136 @@ class TestModelPanel(unittest.TestCase):
         self.app.on_close()
         self.download.return_value.cancel.assert_called_once()
         self.app.on_close = lambda: None              # already closed
+
+
+@unittest.skipUnless(_can_open_window(), "no graphical display available")
+class TestStepFunInTheWindow(unittest.TestCase):
+    """StepFun next to ElevenLabs: its own key field, its own key, live text."""
+
+    def setUp(self):
+        from unittest.mock import patch
+        from audio_transcriber import config
+        from audio_transcriber.audio.capture import AudioEngine
+        from audio_transcriber.transcribe import binaries
+        from audio_transcriber.ui import icons
+        from audio_transcriber.ui.app import RecorderApp
+
+        icons._ICON_CACHE.clear()
+        settings = config.Settings(model="small", live_transcribe=True,
+                                   live_preview=True)
+        settings.api_key = "stored-eleven"
+        settings.stepfun_api_key = "stored-step"
+        self.patches = [
+            patch.object(config, "load", return_value=(settings, [])),
+            patch.object(AudioEngine, "configure", return_value=[]),
+            patch.object(binaries, "model_present", lambda name: True),
+            patch.object(binaries, "find_whisper_executable",
+                         lambda *a, **k: "whisper-cli.exe"),
+        ]
+        for patcher in self.patches:
+            patcher.start()
+        self.root = tk.Tk()
+        self.root.withdraw()
+        self.app = RecorderApp(self.root)
+        self.app._monitor_thread = None
+
+    def tearDown(self):
+        from audio_transcriber.ui import icons
+        self.app.on_close()
+        for patcher in self.patches:
+            patcher.stop()
+        icons._ICON_CACHE.clear()
+
+    def _choose(self, key):
+        from audio_transcriber import config
+        self.app.model_combo.current(config.model_index(key))
+        self.app.model_combo.event_generate("<<ComboboxSelected>>")
+        self.root.update()
+
+    @staticmethod
+    def _shown(widget):
+        return bool(widget.winfo_manager())
+
+    def test_it_is_in_the_model_list(self):
+        values = self.app.model_combo["values"]
+        self.assertTrue(any(value.startswith("StepFun StepAudio 3 ASR")
+                            for value in values))
+        self.assertFalse(any("StepFun" in value and "downloaded" in value
+                             for value in values))
+
+    def test_each_key_field_shows_only_with_its_engine(self):
+        from audio_transcriber import config
+        app = self.app
+        self._choose(config.STEPFUN_MODEL)
+        self.assertTrue(self._shown(app.stepfun_key_field))
+        self.assertFalse(self._shown(app.key_field))
+        self.assertFalse(self._shown(app.model_panel), "no model to download")
+
+        self._choose(config.ELEVENLABS_MODEL)
+        self.assertTrue(self._shown(app.key_field))
+        self.assertFalse(self._shown(app.stepfun_key_field))
+
+        self._choose("small")
+        self.assertFalse(self._shown(app.key_field))
+        self.assertFalse(self._shown(app.stepfun_key_field))
+        self.assertTrue(self._shown(app.model_panel))
+
+    def test_the_stored_keys_are_filled_in_each_in_its_field(self):
+        self.assertEqual(self.app.stepfun_entry.get(), "stored-step")
+        self.assertEqual(self.app.api_entry.get(), "stored-eleven")
+
+    def test_a_typed_key_reaches_the_settings_and_counts_as_a_change(self):
+        from audio_transcriber import config
+        self._choose(config.STEPFUN_MODEL)
+        before = self.app._settings_in_window()
+        self.app.stepfun_entry.delete(0, tk.END)
+        self.app.stepfun_entry.insert(0, "  typed-step  ")
+        self.assertNotEqual(self.app._settings_in_window(), before)
+
+        self.app._sync_settings_from_ui()
+        self.assertEqual(self.app.settings.stepfun_api_key, "typed-step")
+        self.assertEqual(self.app.settings.api_key, "stored-eleven")
+        self.assertEqual(self.app.settings.model, config.STEPFUN_MODEL)
+
+    def test_show_reveals_only_its_own_key(self):
+        from audio_transcriber import config
+        self._choose(config.STEPFUN_MODEL)
+        self.app.stepfun_show_btn.invoke()
+        self.assertEqual(self.app.stepfun_entry.cget("show"), "")
+        self.assertEqual(self.app.api_entry.cget("show"), "•")
+        self.app.stepfun_show_btn.invoke()
+        self.assertEqual(self.app.stepfun_entry.cget("show"), "•")
+
+    def test_the_subtitle_names_it(self):
+        from audio_transcriber import config
+        self._choose(config.STEPFUN_MODEL)
+        self.assertIn("StepFun StepAudio 3 ASR, in the cloud",
+                      self.app.subtitle.cget("text"))
+
+    def _start_live(self, model):
+        from unittest.mock import patch
+        self._choose(model)
+        self.app._sync_settings_from_ui()
+        self.app._run_settings = self.app.settings.snapshot()
+        with patch("audio_transcriber.ui.app.pipeline.LiveTranscriber") as live, \
+                patch("audio_transcriber.ui.app.pipeline.LivePreview") as preview:
+            notes = self.app._start_live("meeting")
+        self.app.live = self.app.live_preview = None    # stand-ins, not to close
+        return live, preview, notes
+
+    def test_it_transcribes_while_recording(self):
+        from audio_transcriber import config
+        live, preview, notes = self._start_live(config.STEPFUN_MODEL)
+        live.assert_called_once()
+        preview.assert_not_called()
+        self.assertIn("StepFun StepAudio 3 ASR", notes[0])
+
+    def test_elevenlabs_still_reads_along_instead(self):
+        from audio_transcriber import config
+        live, preview, notes = self._start_live(config.ELEVENLABS_MODEL)
+        live.assert_not_called()
+        preview.assert_called_once()
+        self.assertIn("local model or StepFun", notes[0])
 
 
 if __name__ == "__main__":

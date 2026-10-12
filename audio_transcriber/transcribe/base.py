@@ -1,4 +1,4 @@
-"""Shared interface for both transcription backends."""
+"""Shared interface for the transcription backends."""
 
 import abc
 import re

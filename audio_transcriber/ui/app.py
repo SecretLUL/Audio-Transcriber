@@ -356,28 +356,37 @@ class RecorderApp:
         self.lang_combo.bind("<<ComboboxSelected>>",
                              lambda _e: self._refresh_subtitle())
 
-        # --- API key ---------------------------------------------------
-        # Shown only while the cloud engine is chosen (_refresh_key_state):
+        # --- API keys --------------------------------------------------
+        # Each shown only while its cloud engine is chosen (_refresh_key_state):
         # with a local model it was a disabled field taking a third of the card.
-        def show_button(parent):
-            self.show_key_btn = W.Button(parent, text="Show", icon_name="eye",
-                                         kind="ghost", width=84, height=34,
-                                         command=self._toggle_key)
-            return self.show_key_btn
+        self.key_field, self.api_entry, self.show_key_btn = self._build_key_field(
+            body, 2, "ElevenLabs API key", self.settings.api_key)
+        (self.stepfun_key_field, self.stepfun_entry,
+         self.stepfun_show_btn) = self._build_key_field(
+            body, 3, "StepFun API key", self.settings.stepfun_api_key)
 
-        self.key_field = W.Field(
-            body, "ElevenLabs API key",
+        self._build_model_panel(body)
+
+    def _build_key_field(self, body, row, label, key):
+        """An API key field with its Show button: (field, entry, button)."""
+        buttons = []
+
+        def show_button(parent):
+            buttons.append(W.Button(parent, text="Show", icon_name="eye",
+                                    kind="ghost", width=84, height=34))
+            return buttons[0]
+
+        field = W.Field(
+            body, label,
             lambda p: ttk.Entry(p, show="•", style="Dark.TEntry",
                                 font=T.fonts["body"]),
             hint=KEY_HINT_STORED,
             icon_name="lock", aside=show_button)
-        self.key_field.grid(row=2, column=0, columnspan=2, sticky="ew",
-                            pady=(T.MD, 0))
-        self.api_entry = self.key_field.widget
-        self.api_entry.insert(0, self.settings.api_key)
-        self._key_visible = False
-
-        self._build_model_panel(body)
+        field.grid(row=row, column=0, columnspan=2, sticky="ew", pady=(T.MD, 0))
+        entry, button = field.widget, buttons[0]
+        entry.insert(0, key)
+        button.config(command=lambda: self._toggle_key(entry, button))
+        return field, entry, button
 
     def _build_model_panel(self, body):
         """Whether the local model is on this computer, and a button to fetch it.
@@ -481,7 +490,7 @@ class RecorderApp:
         options = (
             ("Live transcription", self.live_var,
              "Transcribes while you record, so the transcript is ready right "
-             "after Stop. Local models only."),
+             "after Stop. Local models and StepFun."),
             ("Live preview", self.preview_var,
              "Shows the text in the Transcript tab as it is recognised."),
             ("Separate tracks", self.separate_var,
@@ -911,12 +920,12 @@ class RecorderApp:
                                                  preview=wants_preview)
             self.live.start(base_name)
             return [f"Live transcription running with "
-                    f"{run.model_name()} - stopping only has to "
+                    f"{run.engine_name()} - stopping only has to "
                     f"catch up with the tail.\n"]
 
         notes = []
         if wants_live:
-            notes.append("⚠ Live transcription needs a local model; "
+            notes.append("⚠ Live transcription needs a local model or StepFun; "
                          "ElevenLabs transcribes after you stop.\n")
         if wants_preview:
             self.live_preview = pipeline.LivePreview(self.bridge, run, self.engine)
@@ -1171,6 +1180,7 @@ class RecorderApp:
         settings.model = config.model_key(self.model_combo.current())
         settings.language = config.LANGUAGE_CHOICES[max(0, self.lang_combo.current())][1]
         settings.api_key = self.api_entry.get().strip()
+        settings.stepfun_api_key = self.stepfun_entry.get().strip()
         settings.live_transcribe = bool(self.live_var.get())
         settings.live_preview = bool(self.preview_var.get())
         settings.separate_tracks = bool(self.separate_var.get())
@@ -1232,14 +1242,20 @@ class RecorderApp:
             config.LANGUAGE_CHOICES[max(0, self.lang_combo.current())][1]))
 
     def _refresh_key_state(self):
-        """The API key only matters for the cloud backend."""
-        uses_cloud = config.model_key(self.model_combo.current()) == config.CLOUD_MODEL
-        self.api_entry.config(state="normal" if uses_cloud else "disabled")
-        self.show_key_btn.config(state="normal" if uses_cloud else "disabled")
-        if uses_cloud:
-            self.key_field.grid()
-        else:
-            self.key_field.grid_remove()
+        """An API key only matters for its own cloud engine."""
+        chosen = config.model_key(self.model_combo.current())
+        for engine, field, entry, button in (
+                (config.ELEVENLABS_MODEL, self.key_field, self.api_entry,
+                 self.show_key_btn),
+                (config.STEPFUN_MODEL, self.stepfun_key_field, self.stepfun_entry,
+                 self.stepfun_show_btn)):
+            active = chosen == engine
+            entry.config(state="normal" if active else "disabled")
+            button.config(state="normal" if active else "disabled")
+            if active:
+                field.grid()
+            else:
+                field.grid_remove()
 
     # ------------------------------------------------------------------
     # The local model on the Settings tab
@@ -1248,7 +1264,7 @@ class RecorderApp:
         """Show whether the chosen local model is here - and what to do if not."""
         self._refresh_model_labels()
         key = config.model_key(self.model_combo.current())
-        if key == config.CLOUD_MODEL:
+        if key in config.CLOUD_MODELS:
             self.model_panel.grid_remove()
             return
         self.model_panel.grid()
@@ -1286,7 +1302,8 @@ class RecorderApp:
         """Mark the models that are on this computer in the model list."""
         index = self.model_combo.current()
         labels = [label + ("   ✓ downloaded"
-                           if name and binaries.model_present(name) else "")
+                           if name not in config.CLOUD_MODELS
+                           and binaries.model_present(name) else "")
                   for label, name in config.MODEL_CHOICES]
         if list(self.model_combo["values"]) != labels:
             self.model_combo["values"] = labels
@@ -1314,7 +1331,7 @@ class RecorderApp:
             return
 
         key = config.model_key(self.model_combo.current())
-        if key == config.CLOUD_MODEL:
+        if key in config.CLOUD_MODELS:
             return
         no_room = (None if binaries.model_present(key)
                    else preflight.no_room_for_models([key]))
@@ -1363,12 +1380,13 @@ class RecorderApp:
             self.status.set(f"model '{event.model}' downloaded", T.OK)
         self._refresh_model_state()
 
-    def _toggle_key(self):
-        self._key_visible = not self._key_visible
-        self.api_entry.config(show="" if self._key_visible else "•")
-        self.show_key_btn.configure(
-            text="Hide" if self._key_visible else "Show",
-            icon_name="eye_off" if self._key_visible else "eye"
+    @staticmethod
+    def _toggle_key(entry, button):
+        reveal = bool(entry.cget("show"))        # hidden so far
+        entry.config(show="" if reveal else "•")
+        button.configure(
+            text="Hide" if reveal else "Show",
+            icon_name="eye_off" if reveal else "eye"
         )
 
     def _copy_transcript(self):
@@ -1723,8 +1741,8 @@ def _colour(name):
 
 def _engine_summary(model, language):
     """'whisper.cpp small, on this computer · German': what a run will use."""
-    if model == config.CLOUD_MODEL:
-        engine = "ElevenLabs Scribe, in the cloud"
+    if model in config.CLOUD_MODELS:
+        engine = f"{config.ENGINE_NAMES[model]}, in the cloud"
     else:
         engine = f"whisper.cpp {model}, on this computer"
     names = {code: label for label, code in config.LANGUAGE_CHOICES}

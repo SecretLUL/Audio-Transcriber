@@ -14,8 +14,8 @@ import os
 import shutil
 from dataclasses import dataclass
 
-from . import paths
-from .transcribe import binaries
+from . import config, paths, secretstore
+from .transcribe import binaries, stepfun
 
 ERROR, WARNING, NOTE = "error", "warning", "note"
 _ORDER = {ERROR: 0, WARNING: 1, NOTE: 2}
@@ -58,36 +58,60 @@ def check(settings, recording=True):
 
 # ----------------------------------------------------------------------
 def _engine(settings, recording):
-    cloud = settings.uses_cloud()
-    if cloud and not (settings.api_key or "").strip():
+    engine = settings.cloud_engine()
+    cloud = engine is not None
+    if cloud and not (settings.cloud_api_key() or "").strip():
         return [Finding(ERROR,
-                        "ElevenLabs is chosen, but no API key is set. Enter it on "
-                        "the Settings tab, set the ELEVENLABS_API_KEY environment "
-                        "variable, or choose a local model.")]
+                        f"{config.ENGINE_NAMES[engine]} is chosen, but no API key "
+                        f"is set. Enter it on the Settings tab, set the "
+                        f"{secretstore.environment_variable(engine)} environment "
+                        f"variable, or choose a local model.")]
+    findings = _language(settings) if engine == config.STEPFUN_MODEL else []
 
     # The models this run will load. The closing pass uses the chosen one (not
     # with the cloud); the live text and the preview, whichever of them runs,
-    # use the small model - for a cloud run as well, the preview is local.
+    # use the small model - for a cloud run as well, the preview is local. It
+    # runs only where live transcription does not, which StepFun does itself.
     wanted = [] if cloud else [settings.model_name()]
-    if recording and ((settings.live_transcribe and not cloud) or settings.live_preview):
+    live_runs = settings.live_transcribe and settings.can_transcribe_live()
+    if recording and ((live_runs and not cloud)
+                      or (settings.live_preview and not live_runs)):
         live = settings.live_model_name()
         if live not in wanted:
             wanted.append(live)
     missing = [name for name in wanted if not binaries.model_present(name)]
     if not missing:
-        return []
+        return findings
 
     problem = no_room_for_models(missing)
     if problem:
-        return [Finding(ERROR, problem)]
+        return findings + [Finding(ERROR, problem)]
 
     sizes = {name: binaries.MODEL_SIZE_BYTES.get(name, 0) for name in missing}
     when = ("It is downloaded in the background while you record."
             if recording else
             "It is downloaded first; the transcription starts afterwards.")
-    return [Finding(NOTE, f"The model '{name}' ({_size(sizes[name])}) is not on "
-                          f"this computer yet. {when}")
-            for name in missing]
+    return findings + [Finding(NOTE, f"The model '{name}' ({_size(sizes[name])}) "
+                                     f"is not on this computer yet. {when}")
+                       for name in missing]
+
+
+def _language(settings):
+    """StepFun knows only the languages it documents, and detects none."""
+    language = settings.language
+    if language in stepfun.SUPPORTED_LANGUAGES:
+        return []
+    if language == "auto":
+        return [Finding(WARNING,
+                        "StepFun does not detect the language by itself: without "
+                        "one it assumes English. Choose the language of the "
+                        "recording on the Settings tab.")]
+    named = {code: label for label, code in config.LANGUAGE_CHOICES}
+    return [Finding(WARNING,
+                    f"StepFun documents only Chinese, English, Japanese, Korean, "
+                    f"French and Spanish - not {named.get(language, language)}. "
+                    f"The transcript may come out poor, or StepFun may refuse "
+                    f"the audio.")]
 
 
 def no_room_for_models(names):
