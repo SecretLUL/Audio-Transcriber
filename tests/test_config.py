@@ -211,7 +211,7 @@ class TestModelStoredByName(unittest.TestCase):
         self.assertEqual(loaded.model_name(), "large-v3")
 
     def test_the_cloud_entry_is_saved_by_name_too(self):
-        config.save(config.Settings(model=config.CLOUD_MODEL), self.path)
+        config.save(config.Settings(model=config.ELEVENLABS_MODEL), self.path)
         loaded, warnings = config.load(self.path)
         self.assertEqual(warnings, [])
         self.assertTrue(loaded.uses_cloud())
@@ -228,20 +228,29 @@ class TestModelStoredByName(unittest.TestCase):
                              "small")
 
     def test_a_file_from_before_this_holds_a_position_and_keeps_its_meaning(self):
-        for index, (_label, name) in enumerate(config.MODEL_CHOICES):
+        for index, name in enumerate(config.LEGACY_MODEL_ORDER):
             with self.subTest(index=index):
                 self._write({"model_index": index})
                 loaded, warnings = config.load(self.path)
                 self.assertEqual(warnings, [])
-                self.assertEqual(loaded.model_name(), name)
+                self.assertEqual(loaded.model, name)
+
+    def test_the_positions_of_such_a_file_are_those_of_its_time(self):
+        """StepFun came in second; position 1 of an old file still means tiny."""
+        expected = ["elevenlabs", "tiny", "base", "small", "medium",
+                    "large-v3-turbo", "large-v3"]
+        for index, name in enumerate(expected):
+            with self.subTest(index=index):
+                self._write({"model_index": index})
+                self.assertEqual(config.load(self.path)[0].model, name)
 
     def test_such_a_position_is_clamped_as_it_always_was(self):
         self._write({"model_index": 99})
-        self.assertEqual(config.load(self.path)[0].model_name(),
-                         config.MODEL_CHOICES[-1][1])
+        self.assertEqual(config.load(self.path)[0].model_name(), "large-v3")
         self._write({"model_index": -4})
-        self.assertEqual(config.load(self.path)[0].model_name(),
-                         config.MODEL_CHOICES[0][1])
+        loaded = config.load(self.path)[0]
+        self.assertEqual(loaded.model, config.ELEVENLABS_MODEL)
+        self.assertIsNone(loaded.model_name())
 
     def test_a_name_wins_over_a_position_when_both_are_there(self):
         self._write({"model": "tiny", "model_index": 6})
@@ -267,8 +276,21 @@ class TestModelStoredByName(unittest.TestCase):
         for index, (_label, name) in enumerate(config.MODEL_CHOICES):
             with self.subTest(entry=name):
                 key = config.model_key(index)
+                self.assertEqual(key, name)
                 self.assertEqual(config.model_index(key), index)
-                self.assertEqual(config.Settings(model=key).model_name(), name)
+                settings = config.Settings(model=key)
+                if name in config.CLOUD_MODELS:
+                    self.assertIsNone(settings.model_name())
+                    self.assertEqual(settings.cloud_engine(), name)
+                else:
+                    self.assertEqual(settings.model_name(), name)
+                    self.assertIsNone(settings.cloud_engine())
+
+    def test_both_cloud_engines_are_offered(self):
+        self.assertEqual(set(config.CLOUD_MODELS),
+                         {"elevenlabs", "stepfun"})
+        self.assertTrue(set(config.CLOUD_MODELS) <= set(config.model_keys()))
+        self.assertNotIn("stepfun", config.local_models())
 
     def test_out_of_range_positions_for_the_combo_box_stay_in_range(self):
         self.assertEqual(config.model_key(-1), config.model_key(0))
@@ -279,7 +301,7 @@ class TestModelStoredByName(unittest.TestCase):
 
 class TestModelSelection(unittest.TestCase):
     def test_cloud_entry(self):
-        settings = config.Settings(model=config.CLOUD_MODEL)
+        settings = config.Settings(model=config.ELEVENLABS_MODEL)
         self.assertTrue(settings.uses_cloud())
         self.assertIsNone(settings.model_name())
 
@@ -390,10 +412,136 @@ class TestSettingsSnapshot(unittest.TestCase):
         self.assertTrue(snapshot.migrated_plaintext_key)
 
     def test_a_snapshot_is_a_settings_object_with_the_same_behaviour(self):
-        snapshot = config.Settings(model=config.CLOUD_MODEL, whisper_threads=3).snapshot()
+        snapshot = config.Settings(model=config.ELEVENLABS_MODEL, whisper_threads=3).snapshot()
         self.assertIsInstance(snapshot, config.Settings)
         self.assertTrue(snapshot.uses_cloud())
         self.assertEqual(snapshot.threads(), 3)
+
+    def test_the_stepfun_key_is_copied_too(self):
+        original = config.Settings(model=config.STEPFUN_MODEL)
+        original.stepfun_api_key = "step-key"
+        self.assertEqual(original.snapshot().stepfun_api_key, "step-key")
+
+
+class TestStepFunKey(unittest.TestCase):
+    """The StepFun key is kept like the ElevenLabs one: encrypted, apart."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.path = os.path.join(self.dir, "settings.json")
+        patcher = patch.dict(os.environ)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        for name in ("ELEVENLABS_API_KEY", "STEPFUN_API_KEY"):
+            os.environ.pop(name, None)
+
+    def tearDown(self):
+        for name in os.listdir(self.dir):
+            os.remove(os.path.join(self.dir, name))
+        os.rmdir(self.dir)
+
+    def _stored(self):
+        with open(self.path, encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def test_it_round_trips_and_is_never_written_in_clear_text(self):
+        settings = config.Settings(model=config.STEPFUN_MODEL)
+        settings.api_key = SAMPLE_KEY
+        settings.stepfun_api_key = "step-key-0123456789"
+        self.assertEqual(config.save(settings, self.path), [])
+
+        with open(self.path, encoding="utf-8") as handle:
+            raw = handle.read()
+        self.assertNotIn("step-key-0123456789", raw)
+        stored = self._stored()
+        self.assertNotIn("stepfun_api_key", stored)
+        self.assertTrue(stored["stepfun_api_key_enc"])
+
+        loaded, warnings = config.load(self.path)
+        self.assertEqual(warnings, [])
+        self.assertEqual(loaded.model, config.STEPFUN_MODEL)
+        self.assertEqual(loaded.stepfun_api_key, "step-key-0123456789")
+        self.assertEqual(loaded.api_key, SAMPLE_KEY, "the other key stays apart")
+
+    def test_each_key_is_encrypted_for_its_own_service(self):
+        token = secretstore.encrypt("step-key", "stepfun")
+        self.assertEqual(secretstore.decrypt(token, "stepfun"), "step-key")
+        self.assertEqual(secretstore.decrypt(token, "elevenlabs"), "")
+
+    def test_it_comes_from_the_environment_when_none_is_stored(self):
+        os.environ["STEPFUN_API_KEY"] = "  env-step-key "
+        loaded, _warnings = config.load(self.path)          # no file yet
+        self.assertEqual(loaded.stepfun_api_key, "env-step-key")
+        self.assertEqual(loaded.api_key, "")
+
+    def test_a_key_from_the_environment_is_not_copied_into_the_file(self):
+        os.environ["STEPFUN_API_KEY"] = "env-step-key"
+        settings, _warnings = config.load(self.path)
+        config.save(settings, self.path)
+        self.assertEqual(self._stored()["stepfun_api_key_enc"], "")
+
+    def test_a_key_that_cannot_be_encrypted_names_its_service(self):
+        settings = config.Settings()
+        settings.stepfun_api_key = "step-key"
+        with patch.object(secretstore, "encrypt",
+                          side_effect=OSError("CryptProtectData failed")):
+            warnings = config.save(settings, self.path)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("StepFun", warnings[0])
+        self.assertIn("could not be encrypted", warnings[0])
+        self.assertEqual(self._stored()["stepfun_api_key_enc"], "")
+
+    def test_a_clear_text_value_in_the_file_is_not_taken_as_the_key(self):
+        with open(self.path, "w", encoding="utf-8") as handle:
+            json.dump({"stepfun_api_key": "leaked"}, handle)
+        loaded, _warnings = config.load(self.path)
+        self.assertEqual(loaded.stepfun_api_key, "")
+
+
+class TestEngines(unittest.TestCase):
+    def test_what_each_engine_is(self):
+        stepfun = config.Settings(model=config.STEPFUN_MODEL)
+        eleven = config.Settings(model=config.ELEVENLABS_MODEL)
+        local = config.Settings(model="small")
+        self.assertEqual([s.cloud_engine() for s in (stepfun, eleven, local)],
+                         [config.STEPFUN_MODEL, config.ELEVENLABS_MODEL, None])
+        self.assertEqual([s.uses_cloud() for s in (stepfun, eleven, local)],
+                         [True, True, False])
+        self.assertEqual([s.engine_name() for s in (stepfun, eleven, local)],
+                         ["StepFun StepAudio 3 ASR", "ElevenLabs Scribe", "small"])
+
+    def test_the_key_that_matters_is_the_chosen_engines(self):
+        settings = config.Settings(model=config.STEPFUN_MODEL)
+        settings.api_key, settings.stepfun_api_key = "eleven", "step"
+        self.assertEqual(settings.cloud_api_key(), "step")
+        settings.model = config.ELEVENLABS_MODEL
+        self.assertEqual(settings.cloud_api_key(), "eleven")
+        settings.model = "tiny"
+        self.assertEqual(settings.cloud_api_key(), "")
+
+    def test_only_elevenlabs_cannot_transcribe_live(self):
+        self.assertFalse(config.Settings(model=config.ELEVENLABS_MODEL)
+                         .can_transcribe_live())
+        self.assertTrue(config.Settings(model=config.STEPFUN_MODEL)
+                        .can_transcribe_live())
+        self.assertTrue(config.Settings(model="medium").can_transcribe_live())
+
+    def test_the_stepfun_model_can_be_set_in_the_file(self):
+        folder = tempfile.mkdtemp()
+        try:
+            path = os.path.join(folder, "settings.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump({"model": "stepfun",
+                           "stepfun_model_id": "stepaudio-2.5-asr"}, handle)
+            loaded, warnings = config.load(path)
+            self.assertEqual(warnings, [])
+            self.assertEqual(loaded.stepfun_model_id, "stepaudio-2.5-asr")
+            self.assertEqual(config.Settings().stepfun_model_id,
+                             "stepaudio-3-asr-max")
+        finally:
+            for name in os.listdir(folder):
+                os.remove(os.path.join(folder, name))
+            os.rmdir(folder)
 
 
 if __name__ == "__main__":

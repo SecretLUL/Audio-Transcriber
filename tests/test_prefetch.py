@@ -90,7 +90,7 @@ class TestModelPrefetch(unittest.TestCase):
     def test_the_cloud_has_nothing_to_fetch(self):
         built = []
         backend = Backend()
-        prefetch = self.prefetch(backend, config.Settings(model=config.CLOUD_MODEL),
+        prefetch = self.prefetch(backend, config.Settings(model=config.ELEVENLABS_MODEL),
                                  built=built)
         self.assertIsNone(prefetch.start())
         self.assertEqual(built, [])

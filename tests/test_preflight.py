@@ -61,19 +61,19 @@ class TestEngine(PreflightCase):
         self.assertEqual(self.check(), [])
 
     def test_the_cloud_without_a_key_is_an_error(self):
-        errors = texts(self.check(model=config.CLOUD_MODEL, api_key=""),
+        errors = texts(self.check(model=config.ELEVENLABS_MODEL, api_key=""),
                        preflight.ERROR)
         self.assertEqual(len(errors), 1)
         for fragment in ("API key", "Settings", "ELEVENLABS_API_KEY", "local model"):
             self.assertIn(fragment, errors[0])
 
     def test_a_blank_key_is_no_key(self):
-        findings = self.check(model=config.CLOUD_MODEL, api_key="   ")
+        findings = self.check(model=config.ELEVENLABS_MODEL, api_key="   ")
         self.assertEqual(len(texts(findings, preflight.ERROR)), 1)
 
     def test_the_cloud_with_a_key_needs_no_model(self):
         self.present.clear()
-        self.assertEqual(self.check(model=config.CLOUD_MODEL, api_key="sk_x"), [])
+        self.assertEqual(self.check(model=config.ELEVENLABS_MODEL, api_key="sk_x"), [])
 
     def test_the_key_is_not_asked_for_when_a_local_model_is_chosen(self):
         self.assertEqual(self.check(api_key=""), [])
@@ -111,7 +111,7 @@ class TestModels(PreflightCase):
     def test_a_cloud_run_with_the_preview_on_still_needs_the_small_model(self):
         """The read-along is local even when the transcript comes from the cloud."""
         self.present.discard("small")
-        findings = self.check(model=config.CLOUD_MODEL, api_key="sk_x",
+        findings = self.check(model=config.ELEVENLABS_MODEL, api_key="sk_x",
                               live_preview=True)
         self.assertEqual(texts(findings, preflight.ERROR), [])
         notes = texts(findings, preflight.NOTE)
@@ -166,9 +166,80 @@ class TestModels(PreflightCase):
         self.assertIsNone(preflight.no_room_for_models(["small"]))
 
     def test_every_model_the_app_offers_has_a_known_size(self):
-        for name in (name for _label, name in config.MODEL_CHOICES if name):
+        for name in config.local_models():
             with self.subTest(model=name):
                 self.assertGreater(binaries.MODEL_SIZE_BYTES[name], 50 * 10 ** 6)
+
+
+class TestStepFun(PreflightCase):
+    def stepfun(self, **changes):
+        changes.setdefault("model", config.STEPFUN_MODEL)
+        changes.setdefault("stepfun_api_key", "step-key")
+        changes.setdefault("language", "en")
+        return self.check(**changes)
+
+    def test_with_a_key_and_a_language_it_knows_there_is_nothing_to_say(self):
+        self.present.clear()
+        self.assertEqual(self.stepfun(), [])
+
+    def test_without_its_key_it_cannot_start(self):
+        errors = texts(self.stepfun(stepfun_api_key="", api_key="eleven-key"),
+                       preflight.ERROR)
+        self.assertEqual(len(errors), 1)
+        for fragment in ("StepFun", "API key", "Settings", "STEPFUN_API_KEY",
+                         "local model"):
+            self.assertIn(fragment, errors[0])
+
+    def test_the_elevenlabs_key_does_not_count_for_it(self):
+        self.assertTrue(texts(self.stepfun(stepfun_api_key="  ", api_key="x"),
+                              preflight.ERROR))
+
+    def test_and_its_key_does_not_count_for_elevenlabs(self):
+        errors = texts(self.check(model=config.ELEVENLABS_MODEL, api_key="",
+                                  stepfun_api_key="step-key"), preflight.ERROR)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("ELEVENLABS_API_KEY", errors[0])
+
+    def test_a_language_it_does_not_document_is_asked_about(self):
+        for code, name in (("de", "German"), ("tr", "Turkish"), ("ar", "Arabic")):
+            with self.subTest(language=code):
+                warnings = texts(self.stepfun(language=code), preflight.WARNING)
+                self.assertEqual(len(warnings), 1)
+                self.assertIn(name, warnings[0])
+                self.assertIn("Chinese, English, Japanese, Korean, French and "
+                              "Spanish", warnings[0])
+
+    def test_every_language_it_documents_is_fine(self):
+        for code in ("en", "fr", "es"):
+            with self.subTest(language=code):
+                self.assertEqual(self.stepfun(language=code), [])
+
+    def test_it_detects_no_language_by_itself(self):
+        warnings = texts(self.stepfun(language="auto"), preflight.WARNING)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("English", warnings[0])
+
+    def test_an_upload_is_asked_about_the_language_too(self):
+        warnings = texts(self.stepfun(language="de", recording=False),
+                         preflight.WARNING)
+        self.assertEqual(len(warnings), 1)
+
+    def test_the_language_does_not_matter_for_the_other_engines(self):
+        self.assertEqual(self.check(language="de"), [])
+        self.assertEqual(self.check(model=config.ELEVENLABS_MODEL, api_key="k",
+                                    language="de"), [])
+
+    def test_its_live_text_needs_no_local_model(self):
+        """It transcribes live itself, so the local preview never runs."""
+        self.present.clear()
+        self.assertEqual(self.stepfun(live_transcribe=True, live_preview=True), [])
+
+    def test_with_live_transcription_off_the_preview_is_local(self):
+        self.present.clear()
+        notes = texts(self.stepfun(live_transcribe=False, live_preview=True),
+                      preflight.NOTE)
+        self.assertEqual(len(notes), 1)
+        self.assertIn("'small'", notes[0])
 
 
 class TestOutputFolder(PreflightCase):

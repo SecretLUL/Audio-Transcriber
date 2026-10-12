@@ -13,9 +13,25 @@ from .paths import CFG_PATH
 
 SCHEMA_VERSION = 2
 
-# (display name, whisper model name or None for cloud)
+# What settings.json holds for the cloud engines; a local model is stored
+# under its whisper model name. The file used to hold a position in
+# MODEL_CHOICES, so adding or moving an entry changed which model every saved
+# file meant.
+ELEVENLABS_MODEL = "elevenlabs"
+STEPFUN_MODEL = "stepfun"
+CLOUD_MODELS = (ELEVENLABS_MODEL, STEPFUN_MODEL)
+DEFAULT_MODEL = "small"
+
+# What the cloud engines are called in messages.
+ENGINE_NAMES = {
+    ELEVENLABS_MODEL: "ElevenLabs Scribe",
+    STEPFUN_MODEL: "StepFun StepAudio 3 ASR",
+}
+
+# (display name, stored name)
 MODEL_CHOICES = [
-    ("ElevenLabs Scribe (Cloud API - state of the art)", None),
+    ("ElevenLabs Scribe (Cloud API - state of the art)", ELEVENLABS_MODEL),
+    ("StepFun StepAudio 3 ASR (Cloud API)", STEPFUN_MODEL),
     ("tiny (75 MB - very fast)", "tiny"),
     ("base (142 MB - fast)", "base"),
     ("small (466 MB - balanced)", "small"),
@@ -24,16 +40,20 @@ MODEL_CHOICES = [
     ("large-v3 (3.1 GB - slow, highest accuracy)", "large-v3"),
 ]
 
-# What settings.json holds for the cloud entry; the others are stored under
-# their whisper model name. The file used to hold a position in MODEL_CHOICES,
-# so adding or moving an entry changed which model every saved file meant.
-CLOUD_MODEL = "elevenlabs"
-DEFAULT_MODEL = "small"
+# The list as it was while settings.json held a position in it (model_index).
+# Files of that time are read with it, whatever the list holds now.
+LEGACY_MODEL_ORDER = (ELEVENLABS_MODEL, "tiny", "base", "small", "medium",
+                      "large-v3-turbo", "large-v3")
 
 
 def model_keys():
     """The stored name of every entry of MODEL_CHOICES, in list order."""
-    return [name or CLOUD_MODEL for _label, name in MODEL_CHOICES]
+    return [key for _label, key in MODEL_CHOICES]
+
+
+def local_models():
+    """The whisper models among MODEL_CHOICES, in list order."""
+    return [key for key in model_keys() if key not in CLOUD_MODELS]
 
 
 def model_key(index):
@@ -73,7 +93,7 @@ class Settings:
     loop_gain_db: float = 0.0
 
     # --- AI ---------------------------------------------------------------
-    model: str = DEFAULT_MODEL      # a whisper model name or CLOUD_MODEL
+    model: str = DEFAULT_MODEL      # a whisper model name or one of CLOUD_MODELS
     language: str = "de"
     whisper_threads: int = 0        # 0 = automatic
     # Silero VAD: off by default. Measured against a real recording, the VAD
@@ -88,10 +108,11 @@ class Settings:
     # with it on, a run that fails on the GPU is repeated on the CPU.
     use_gpu: bool = False
     # Recognise while recording, so stopping only has to catch up with the
-    # tail. Local models only - see pipeline.live_transcription_possible().
+    # tail. Not with ElevenLabs - see can_transcribe_live().
     live_transcribe: bool = True
     live_preview: bool = True       # show the running text while recording
     elevenlabs_model_id: str = "scribe_v2"
+    stepfun_model_id: str = "stepaudio-3-asr-max"
 
     # --- Output -----------------------------------------------------------
     filename: str = "my_meeting"
@@ -106,9 +127,12 @@ class Settings:
     # --- Internal ---------------------------------------------------------
     schema_version: int = SCHEMA_VERSION
     elevenlabs_api_key_enc: str = ""
+    stepfun_api_key_enc: str = ""
 
-    # Runtime field, never persisted in clear text
+    # Runtime fields, never persisted in clear text: the ElevenLabs key and
+    # the StepFun key
     api_key: str = field(default="", repr=False, compare=False)
+    stepfun_api_key: str = field(default="", repr=False, compare=False)
 
     # Set by the loader when a plain-text key was migrated
     migrated_plaintext_key: bool = field(default=False, repr=False, compare=False)
@@ -121,13 +145,41 @@ class Settings:
         from .paths import OUT_DIR
         return OUT_DIR
 
+    def _model_key(self):
+        return self.model if self.model in model_keys() else DEFAULT_MODEL
+
     def model_name(self):
         """whisper model name for the current choice, or None for cloud."""
-        key = self.model if self.model in model_keys() else DEFAULT_MODEL
-        return None if key == CLOUD_MODEL else key
+        key = self._model_key()
+        return None if key in CLOUD_MODELS else key
+
+    def cloud_engine(self):
+        """The chosen cloud engine - one of CLOUD_MODELS - or None."""
+        key = self._model_key()
+        return key if key in CLOUD_MODELS else None
 
     def uses_cloud(self):
-        return self.model_name() is None
+        return self.cloud_engine() is not None
+
+    def cloud_api_key(self):
+        """The key the chosen cloud engine needs; "" for a local model."""
+        return {ELEVENLABS_MODEL: self.api_key,
+                STEPFUN_MODEL: self.stepfun_api_key}.get(self.cloud_engine(), "")
+
+    def engine_name(self):
+        """What a run recognises with, for messages: 'small', 'StepFun ...'."""
+        return ENGINE_NAMES.get(self.cloud_engine()) or self.model_name()
+
+    def can_transcribe_live(self):
+        """Whether the recording can be transcribed while it runs.
+
+        ElevenLabs cannot: every chunk would be a separate paid request, and
+        the final transcript has to come from one and the same recogniser -
+        mixing whisper chunks with an ElevenLabs tail would show in the text.
+        StepFun is sent passage by passage anyway, so a chunk costs nothing
+        extra and the closing pass uses the same recogniser.
+        """
+        return self.cloud_engine() != ELEVENLABS_MODEL
 
     def snapshot(self):
         """An independent copy for a worker thread.
@@ -161,6 +213,15 @@ class Settings:
 
 
 # ----------------------------------------------------------------------
+# Every API key: the runtime field holding it, the field storing it encrypted,
+# and its secretstore service (DPAPI entropy, environment variable).
+_KEYS = (
+    ("api_key", "elevenlabs_api_key_enc", ELEVENLABS_MODEL),
+    ("stepfun_api_key", "stepfun_api_key_enc", STEPFUN_MODEL),
+)
+_RUNTIME_FIELDS = ("api_key", "stepfun_api_key", "migrated_plaintext_key")
+
+
 def load(path=None):
     """Load the settings. Returns (Settings, warnings).
 
@@ -178,7 +239,7 @@ def load(path=None):
     settings = Settings()
 
     if not os.path.exists(path):
-        settings.api_key = secretstore.from_environment()
+        _keys_from_environment(settings)
         return settings, warnings
 
     try:
@@ -187,17 +248,17 @@ def load(path=None):
     except Exception as exc:
         warnings.append(f"settings.json could not be read ({exc}); "
                         f"falling back to defaults.")
-        settings.api_key = secretstore.from_environment()
+        _keys_from_environment(settings)
         return settings, warnings
 
     if not isinstance(raw, dict):
         warnings.append("settings.json has an unexpected format.")
-        settings.api_key = secretstore.from_environment()
+        _keys_from_environment(settings)
         return settings, warnings
 
     known = {f.name: f.type for f in fields(Settings)}
     for key, value in raw.items():
-        if key not in known or key in ("api_key", "migrated_plaintext_key"):
+        if key not in known or key in _RUNTIME_FIELDS:
             continue
         try:
             current = getattr(settings, key)
@@ -216,8 +277,10 @@ def load(path=None):
     settings.mic_gain_db = max(-40.0, min(40.0, settings.mic_gain_db))
     settings.loop_gain_db = max(-40.0, min(40.0, settings.loop_gain_db))
 
-    # --- Obtain the key ------------------------------------------------
-    settings.api_key = secretstore.decrypt(settings.elevenlabs_api_key_enc)
+    # --- Obtain the keys -----------------------------------------------
+    for attribute, stored, service in _KEYS:
+        setattr(settings, attribute,
+                secretstore.decrypt(getattr(settings, stored), service))
 
     # Migration: adopt a plain-text key from schema v1 and warn about it
     legacy = str(raw.get("elevenlabs_api_key", "")).strip()
@@ -231,17 +294,24 @@ def load(path=None):
             "a new one - the old value sat unprotected on disk."
         )
 
-    if not settings.api_key:
-        settings.api_key = secretstore.from_environment()
-
+    _keys_from_environment(settings)
     return settings, warnings
+
+
+def _keys_from_environment(settings):
+    """Take every key that is not set from its environment variable."""
+    for attribute, _stored, service in _KEYS:
+        if not getattr(settings, attribute):
+            setattr(settings, attribute, secretstore.from_environment(service))
 
 
 def _read_model(settings, raw, warnings):
     """Settle `settings.model`: a stored name, or the position of older files."""
     if "model" not in raw and "model_index" in raw:
         try:
-            settings.model = model_key(raw["model_index"])
+            index = int(raw["model_index"])
+            settings.model = LEGACY_MODEL_ORDER[
+                max(0, min(index, len(LEGACY_MODEL_ORDER) - 1))]
         except (TypeError, ValueError):
             warnings.append("Setting 'model_index' was invalid and has been ignored.")
     if settings.model not in model_keys():
@@ -251,11 +321,12 @@ def _read_model(settings, raw, warnings):
 
 
 def save(settings, path=None):
-    """Save atomically. The key is never written in clear text.
+    """Save atomically. The keys are never written in clear text.
 
-    A key that merely came from ELEVENLABS_API_KEY is not written at all: the
-    stored copy would win over the variable from then on, so rotating the
-    variable would silently change nothing.
+    A key that merely came from its environment variable (ELEVENLABS_API_KEY,
+    STEPFUN_API_KEY) is not written at all: the stored copy would win over the
+    variable from then on, so rotating the variable would silently change
+    nothing.
 
     Returns a list of warnings, empty when everything was stored. A key that
     could not be secured is left out of the file - and that has to be said: it
@@ -264,19 +335,22 @@ def save(settings, path=None):
     path = CFG_PATH if path is None else path
     warnings = []
     data = asdict(settings)
-    data.pop("api_key", None)
-    data.pop("migrated_plaintext_key", None)
+    for name in _RUNTIME_FIELDS:
+        data.pop(name, None)
     data["schema_version"] = SCHEMA_VERSION
 
-    data["elevenlabs_api_key_enc"] = ""
-    if settings.api_key and settings.api_key != secretstore.from_environment():
+    for attribute, stored, service in _KEYS:
+        key = getattr(settings, attribute)
+        data[stored] = ""
+        if not key or key == secretstore.from_environment(service):
+            continue
         try:
-            data["elevenlabs_api_key_enc"] = secretstore.encrypt(settings.api_key)
+            data[stored] = secretstore.encrypt(key, service)
         except OSError as exc:
             # Store nothing rather than clear text.
-            warnings.append(f"The API key could not be encrypted ({exc}) and "
-                            f"was not saved. It stays in use until you "
-                            f"close the app.")
+            warnings.append(f"The {ENGINE_NAMES[service]} API key could not be "
+                            f"encrypted ({exc}) and was not saved. It stays in "
+                            f"use until you close the app.")
 
     tmp_path = path + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as handle:

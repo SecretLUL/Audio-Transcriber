@@ -271,7 +271,7 @@ class TestPinnedDownloads(unittest.TestCase):
 
     def test_every_model_the_app_offers_has_a_pinned_hash(self):
         from audio_transcriber import config
-        names = [name for _label, name in config.MODEL_CHOICES if name]
+        names = config.local_models()
         for name in names:
             with self.subTest(model=name):
                 self.assertIn(f"ggml-{name}.bin", binaries.EXPECTED_SHA256)
